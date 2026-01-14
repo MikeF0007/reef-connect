@@ -1,0 +1,79 @@
+## Global exclude for generated files
+exclude: '.*_pb2(_grpc)?\.py$|\.trc$|node_modules/|dist/|build/'
+
+repos:
+  # Python formatting and linting with Ruff
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff-format
+        description: "Run 'ruff format' for extremely fast Python formatting"
+        entry: ruff format
+        files: \.(py|pyi|ipynb)$
+        language: python
+        types_or: [python, pyi, jupyter]
+        args: ["--force-exclude"]
+        require_serial: true
+        additional_dependencies: &ruff_version ["ruff==0.9.9"]
+        minimum_pre_commit_version: "2.9.2"
+        stages: [commit]
+
+      - id: ruff-check
+        name: ruff-check
+        description: "Run 'ruff check' for extremely fast Python linting"
+        entry: ruff check
+        files: \.(py|pyi|ipynb)$
+        language: python
+        types_or: [python, pyi, jupyter]
+        args: ["--force-exclude", "--output-format=concise"]
+        require_serial: true
+        additional_dependencies: *ruff_version
+        minimum_pre_commit_version: "2.9.2"
+        stages: [commit]
+        verbose: true
+
+  # Frontend formatting with Prettier
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [javascript, jsx, ts, tsx, json, css, scss, markdown]
+        args: ["--write"]
+        stages: [commit]
+
+  # General file checks (works for all languages)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=5000"]
+        stages: [pre-commit]
+      - id: check-byte-order-marker
+        stages: [pre-commit]
+      - id: check-case-conflict
+        stages: [pre-commit]
+      - id: check-executables-have-shebangs
+        stages: [pre-commit]
+      - id: check-json
+        stages: [pre-commit]
+        exclude: "^.vscode/.*.json$"
+      - id: check-merge-conflict
+        stages: [pre-commit]
+      - id: check-symlinks
+        stages: [pre-commit]
+      - id: check-toml
+        stages: [pre-commit]
+      - id: check-xml
+        stages: [pre-commit]
+      - id: check-yaml
+        stages: [pre-commit]
+      - id: detect-private-key
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: trailing-whitespace
+        stages: [pre-commit]
+        args: ["--markdown-linebreak-ext=md"]
+      - id: mixed-line-ending
+        stages: [pre-commit]
+        args: ["--fix=lf"]

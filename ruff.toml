@@ -1,0 +1,38 @@
+line-length = 100
+
+[format]
+exclude = ["**/*_pb2.py", "**/*_pb2_grpc.py", "**/*.trc"]
+
+[lint]
+# Stricter linting for production code
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # import sorting
+    "B",   # common bug detection
+    "C4",  # flake8-comprehensions
+    "W",   # non-fatal style warnings
+    "D",   # pydocstyle
+    "S",   # flake8-bandit (security)
+    "PL",  # pylint-like rules
+    "ANN", # type hint param/return enforcement
+]
+
+ignore = [
+    "E501",  # ignore E501 (line too long) because we set line-length above
+    "D203",  # ignore blank-line-before-class conflict
+    "D205",  # ignore enforcement of single line summary and separate description
+    "D213",  # ignore multi-line-summary-second-line conflict
+    "D401",  # ignore the imperative mood requirement in docstrings
+    "D413",  # ignore the blank line check at the end of docstrings
+]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]  # ignore assert usage (needed for pytest tests)
+"*/test_*.py" = ["S101"]     # ignore assert usage (needed for pytest tests)
+
+[lint.isort]
+known-first-party = [
+    "reef_connect",
+    "backend",
+]
