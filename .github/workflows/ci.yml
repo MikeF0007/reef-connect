@@ -18,24 +18,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if backend code exists
+        id: check-backend
+        run: |
+          if [ -d "backend/app" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Python ${{ matrix.python-version }}
+        if: steps.check-backend.outputs.exists == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install uv
+        if: steps.check-backend.outputs.exists == 'true'
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
       - name: Install nox
+        if: steps.check-backend.outputs.exists == 'true'
         run: pip install nox
 
       - name: Run lint
+        if: steps.check-backend.outputs.exists == 'true' && matrix.python-version == '3.12'
         run: nox -s lint
-        if: matrix.python-version == '3.12'
 
       - name: Run tests
+        if: steps.check-backend.outputs.exists == 'true'
         run: nox -s test
 
       - name: Upload coverage
@@ -53,12 +66,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if package-lock.json exists
+        id: check-lockfile
+        run: |
+          if [ -f "frontend/package-lock.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache: ${{ steps.check-lockfile.outputs.exists == 'true' && 'npm' || '' }}
+          cache-dependency-path: ${{ steps.check-lockfile.outputs.exists == 'true' && 'frontend/package-lock.json' || '' }}
 
       - name: Install dependencies
         working-directory: frontend
