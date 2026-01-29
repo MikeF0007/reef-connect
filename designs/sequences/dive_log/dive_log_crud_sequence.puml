@@ -1,0 +1,86 @@
+@startuml Dive Log CRUD Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+database "Database" as DB
+
+
+note right of User
+    If media associations are added to a new/existing dive log through the dive log page (or removed
+    through dive log deletion), only DiveLogAdded, DiveLogUpdated, or DiveLogDeleted events
+    (respectively) will be fired since dive log page is the source. Consumers of MediaUploaded,
+    MediaUpdated, and MediaDeleted events that react to media-to-dive-log linkage will similarly
+    react to dive log events involving this linkage.
+end note
+
+== User Views Dive Logs ==
+User -> Frontend: navigates to dive logs page
+Frontend -> API: GET /dive-log (filters, page, page_size, sort_by, sort_order)
+activate API
+API -> API: validate auth & authorization
+API -> DB: query dive logs (user_id, filters, pagination, sorting)
+DB --> API: paginated, sorted dive log list + total count
+API --> Frontend: 200 OK (dive log list, total count, page info)
+deactivate API
+Frontend --> User: display paginated, sorted dive logs
+
+== User Adds Dive Log ==
+User -> Frontend: fills out dive log form
+Frontend -> API: POST /dive-log (dive log data)
+activate API
+API -> API: validate auth & authorization
+API -> API: validate dive log data (fields, limits, etc.)
+alt validation fails
+    API --> Frontend: 400 Bad Request (error details)
+    deactivate API
+else validation succeeds
+    API -> DB: insert dive log record (user_id, dive data)
+    DB --> API: dive_log_id
+    API -> API: if media_ids provided in request, link media to dive log
+    API -> DB: update media records (set dive_log_id for media_ids)
+    API -> API: invalidate media metadata cache (for media_ids)
+    API -> Events: publish DiveLogAdded event (dive_log_id, user_id, provided_fields)
+    API --> Frontend: 201 Created (dive_log_id)
+    deactivate API
+end
+Frontend --> User: show confirmation / new log in list
+
+== User Updates Dive Log ==
+User -> Frontend: edits dive log
+Frontend -> API: PUT /dive-log/{id} (updated data)
+activate API
+API -> API: validate auth & authorization
+API -> API: validate updated data
+alt validation fails
+    API --> Frontend: 400 Bad Request (error details)
+    deactivate API
+else validation succeeds
+    API -> DB: update dive log record (dive_log_id, new data)
+    DB --> API: update result
+    API -> API: if media_ids provided in request, link media to dive log
+    API -> DB: update media records (set dive_log_id for media_ids)
+    API -> API: invalidate media metadata cache (for media_ids)
+    API -> Events: publish DiveLogUpdated event (dive_log_id, user_id, changed_fields)
+    API --> Frontend: 200 OK (updated log)
+    deactivate API
+end
+Frontend --> User: show update confirmation
+
+== User Deletes Dive Log ==
+User -> Frontend: selects dive log to delete
+Frontend -> API: DELETE /dive-log/{id}
+activate API
+API -> API: validate auth & authorization
+API -> DB: delete dive log record (dive_log_id, user_id)
+DB --> API: delete result
+alt delete succeeds
+    API -> DB: fetch associated media_ids for dive_log_id
+    API -> API: invalidate media metadata cache (for associated media_ids)
+    API -> Events: publish DiveLogDeleted event (dive_log_id, user_id)
+    API --> Frontend: 200 OK (deleted)
+else delete fails
+    API --> Frontend: 404 Not Found or error
+end
+deactivate API
+Frontend --> User: show deletion result
+@enduml

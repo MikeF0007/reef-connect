@@ -1,0 +1,69 @@
+@startuml DiveLogAdded/Update/Deleted Event Consumers Sequence
+queue "Event Bus" as Events
+participant "Materialized Data Worker" as MaterializedDataWorker
+participant "API Server" as API
+
+
+== Parallel consumers of DiveLogAdded event ==
+par Materialized Data Update (DiveLogAdded)
+    Events -> MaterializedDataWorker: consume DiveLogAdded (dive_log_id, user_id, provided_fields)
+    activate MaterializedDataWorker
+    note right of MaterializedDataWorker
+        Update materialized stats (e.g., leaderboards)
+        and any other derived data.
+    end note
+    MaterializedDataWorker -> MaterializedDataWorker: recalculate user/global stats
+    MaterializedDataWorker -> Events: emit events for re-materialized data
+end par
+
+par API Cache Invalidation (DiveLogAdded)
+    Events -> API: consume DiveLogAdded (dive_log_id, user_id, provided_fields)
+    activate API
+    API -> API: invalidate dive log API cache (user_id, dive_log_id)
+    API -> API: if media_ids in provided_fields, invalidate media metadata cache for those media_ids
+    deactivate API
+end par
+
+
+== Parallel consumers of DiveLogUpdated event ==
+par Materialized Data Update (DiveLogUpdated)
+    Events -> MaterializedDataWorker: consume DiveLogUpdated (dive_log_id, user_id, changed_fields)
+    activate MaterializedDataWorker
+    note right of MaterializedDataWorker
+        Update materialized stats (e.g., leaderboards)
+        and any other derived data.
+    end note
+    MaterializedDataWorker -> MaterializedDataWorker: recalculate user/global stats
+    MaterializedDataWorker -> Events: emit events for re-materialized data
+
+par API Cache Invalidation (DiveLogUpdated)
+    Events -> API: consume DiveLogUpdated (dive_log_id, user_id, changed_fields)
+    activate API
+    API -> API: invalidate dive log API cache (user_id, dive_log_id)
+    API -> API: if media_ids in changed_fields, invalidate media metadata cache for those media_ids
+    deactivate API
+end par
+
+
+== Parallel consumers of DiveLogDeleted event ==
+par Materialized Data Update (DiveLogDeleted)
+    Events -> MaterializedDataWorker: consume DiveLogDeleted (dive_log_id, user_id)
+    activate MaterializedDataWorker
+    note right of MaterializedDataWorker
+        Update materialized stats (e.g., leaderboards)
+        and any other derived data.
+    end note
+    MaterializedDataWorker -> MaterializedDataWorker: recalculate user/global stats
+    MaterializedDataWorker -> Events: emit events for re-materialized data
+    deactivate MaterializedDataWorker
+end par
+
+par API Cache Invalidation (DiveLogDeleted)
+    Events -> API: consume DiveLogDeleted (dive_log_id, user_id)
+    activate API
+    API -> DB: fetch associated media_ids for dive_log_id
+    API -> API: invalidate dive log API cache (user_id, dive_log_id)
+    API -> API: invalidate media metadata cache (for associated media_ids)
+    deactivate API
+end par
+@enduml

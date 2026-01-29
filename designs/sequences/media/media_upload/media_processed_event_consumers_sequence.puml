@@ -1,0 +1,31 @@
+@startuml MediaProcessed Event Consumers Sequence
+queue "Event Bus" as Events
+participant "ML Species Tagger" as MLTagger
+participant "Materialized Data Worker" as MaterializedDataWorker
+participant "API Server" as API
+database "Database" as DB
+participant Frontend
+
+== Parallel consumers of MediaProcessed event ==
+par MLTagger (species tagging)
+    Events -> MLTagger: consume MediaProcessed
+    activate MLTagger
+    MLTagger -> DB: fetch blob storage url/key for media_id
+    MLTagger -> Blob: retrieve media file
+    MLTagger -> MLTagger: analyze for species\n(ML inference)
+    alt ML tagging fails
+        MLTagger -> DB: update status\n(tagging_status: FAILED)
+    else ML tagging succeeds
+        MLTagger -> DB: save species tags\n(species_id, confidence)
+        MLTagger -> Events: publish MLSpeciesTaggingComplete\n(media_id, user_id)
+    end
+    deactivate MLTagger
+end par
+
+par API Cache Invalidation
+    Events -> API: consume MediaProcessed event (media_id)
+    activate API
+    API -> API: invalidate media metadata cache (media_id)
+    deactivate API
+end par
+@enduml

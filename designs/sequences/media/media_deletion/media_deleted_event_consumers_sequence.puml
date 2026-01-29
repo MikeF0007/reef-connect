@@ -1,0 +1,33 @@
+@startuml MediaDeleted Event Consumers Sequence
+queue "Event Bus" as Events
+participant "API Server" as API
+participant "Materialized Data Worker" as MaterializedDataWorker
+database "Database" as DB
+
+== Parallel consumers of MediaDeleted event ==
+par API Metadata Invalidation
+    Events -> API: consume MediaDeleted event (media_id)
+    activate API
+    API -> DB: fetch associated dive_log_id for media_id
+    API -> API: invalidate media metadata cache (media_id)
+    API -> API: invalidate dive log cache for associated dive_log_id
+    deactivate API
+end par
+
+par ScubaDex Update
+    Events -> MaterializedDataWorker: consume MediaDeleted event (media_id)
+    activate MaterializedDataWorker
+    note right of MaterializedDataWorker
+        Debounce: max 1 worker per user.
+        Debounce timer resets with each new SpeciesTagged,
+        SpeciesTagRemoved, and MediaDeleted event.
+        Recalculate ScubaDex after burst of events.
+    end note
+    MaterializedDataWorker -> DB: fetch user's affected tags/species
+    MaterializedDataWorker -> MaterializedDataWorker: recompute ScubaDex (remove tags, recalc stats)
+    MaterializedDataWorker -> DB: save new ScubaDex version (user_id, version)
+    MaterializedDataWorker -> DB: update the user's latest ScubaDex version (user_id, version)
+    MaterializedDataWorker -> Events: publish ScubaDexUpdated (user_id)
+    deactivate MaterializedDataWorker
+end par
+@enduml

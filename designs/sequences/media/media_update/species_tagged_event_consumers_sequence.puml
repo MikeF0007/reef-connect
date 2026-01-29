@@ -1,0 +1,31 @@
+@startuml SpeciesTagged Event Consumers Sequence
+queue "Event Bus" as Events
+participant "Materialized Data Worker" as MaterializedDataWorker
+participant "API Server" as API
+database "Database" as DB
+
+== Parallel consumers of SpeciesTagged event ==
+par ScubaDex Update
+    Events -> MaterializedDataWorker: consume SpeciesTagged (media_id, species tags)
+    activate MaterializedDataWorker
+    note right of MaterializedDataWorker
+        Debounce: max 1 worker per user.
+        Debounce timer resets with each new SpeciesTagged,
+        SpeciesTagRemoved, and MediaDeleted event.
+        Recalculate ScubaDex after burst of events.
+    end note
+    MaterializedDataWorker -> DB: fetch user's species data
+    MaterializedDataWorker -> MaterializedDataWorker: recompute ScubaDex\n(user's species count,\nrarity scores, etc.)
+    MaterializedDataWorker -> DB: save new ScubaDex version\n(user_id, version)
+    MaterializedDataWorker -> DB: update the user's latest ScubaDex version\n(user_id, version)
+    MaterializedDataWorker -> Events: publish ScubaDexUpdated\n(user_id)
+    deactivate MaterializedDataWorker
+end par
+
+par API Metadata Invalidation
+    Events -> API: consume SpeciesTagged (media_id, species tags)
+    activate API
+    API -> API: invalidate media metadata cache (media_id)
+    deactivate API
+end par
+@enduml

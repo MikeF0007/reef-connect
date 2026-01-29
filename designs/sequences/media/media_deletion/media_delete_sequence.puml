@@ -1,0 +1,47 @@
+@startuml Media Deletion Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+database "Blob Storage" as Blob
+database "Database" as DB
+participant "CDN" as CDN
+
+== User Requests Media Deletion ==
+User -> Frontend: selects media file(s) to delete
+Frontend -> API: DELETE /media (list[media_id])
+activate API
+loop for each media_id
+    API -> API: validate auth & authorization
+    API -> DB: check media ownership & existence
+    alt validation fails
+        API -> API: collect error for this media_id
+    else validation succeeds
+        API -> Blob: delete media file
+        activate Blob
+        alt blob deletion succeeds
+            Blob --> API: 204 No Content
+            deactivate Blob
+            API -> DB: delete media metadata
+            DB --> API: metadata deleted
+            API -> CDN: invalidate cache (media_id)
+            API -> Events: publish MediaDeleted event (media_id, user_id)
+            note right of API
+                If a dive log disassociation occurs by way of media deletion through media gallery,
+                only MediaDeleted event will be fired since media gallery is the source. Consumers
+                of DiveLogUpdated events dealing with media-to-dive-log de-linkage or of
+                DiveLogDeleted events will similarly react to MediaDeleted events forcing
+                de-linkage.
+            end note
+            API -> API: collect success for this media_id
+        else blob deletion fails
+            Blob --> API: error
+            deactivate Blob
+            API -> API: collect error for this media_id (blob deletion failed)
+        end
+    end
+end
+API --> Frontend: 200 OK (results: success/error per media_id)
+deactivate API
+
+Frontend --> User: show deletion results (success/error)
+@enduml

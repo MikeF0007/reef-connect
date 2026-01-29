@@ -1,0 +1,54 @@
+@startuml Media Update Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+database "Database" as DB
+
+== User Views Media ==
+User -> Frontend: navigates to media gallery
+Frontend -> API: GET /media (filters, page, page_size, sort_by, sort_order)
+activate API
+API -> API: validate auth & authorization
+API -> DB: query media (user_id, filters, pagination, sorting)
+DB --> API: paginated, sorted media list + total count
+API --> Frontend: 200 OK (media list, total count, page info)
+deactivate API
+Frontend --> User: display paginated, sorted media
+
+== User Updates Media Metadata ==
+note right of User
+    Media files are immutable. "Updating" media files involves deleting the old file and uploading a
+    new one. This sequence covers metadata updates (e.g., name, description, associations) only,
+    which effectively are the only "media updates" enabled by the UI anyways.
+end note
+User -> Frontend: edits media metadata (name, description, dive log association, etc.)
+Frontend -> API: PUT /media/{id} (updated metadata)
+activate API
+API -> API: validate auth & authorization
+API -> API: validate updated metadata
+alt validation fails
+    API --> Frontend: 400 Bad Request (error details)
+    deactivate API
+else validation succeeds
+    API -> DB: update media record (media_id, new metadata)
+    DB --> API: update result
+    API -> API: if species tags added, publish SpeciesTagged events (media_id, species_id, user_id)
+    API -> API: if species tags removed, publish SpeciesTagRemoved events (media_id, species_id, user_id)
+    API -> Events: publish MediaUpdated event (media_id, user_id, changed_fields)
+    note right of API
+        Non-species-tag metadata changes are handled by MediaUpdated. Species tagging and tag
+        removal are handled by SpeciesTagged and SpeciesTagRemoved events, which have their own
+        consumers (e.g., MaterializedDataWorker for ScubaDex recalculation). These may be submitted
+        in the same media update request/form in the UI though, and so both types of events may fire
+        together.
+
+        If a dive log association is added to this media through media gallery, only MediaUpdated
+        event will be fired since media gallery is the source. Consumers of DiveLogUpdated events
+        related to media-to-dive-log linkage will similarly react to MediaUpdated events involving
+        this linkage.
+    end note
+    API --> Frontend: 200 OK (updated media)
+    deactivate API
+end
+Frontend --> User: show update confirmation
+@enduml
