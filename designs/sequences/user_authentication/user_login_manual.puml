@@ -1,0 +1,43 @@
+@startuml User Login & JWT Issuance
+actor User
+participant Frontend
+participant "API Server" as API
+database "Database" as DB
+
+== User Submits Login Form ==
+User -> Frontend: enters email, password
+Frontend -> API: POST /auth/login (email, password)
+activate API
+API -> API: validate input (email format, password provided)
+alt validation fails
+    Frontend <-- API: 400 Bad Request (error details)
+    deactivate API
+else validation succeeds
+    API -> DB: query user by email
+    API <-- DB: user record (or null)
+    alt user not found
+        Frontend <-- API: 401 Unauthorized (invalid credentials)
+        deactivate API
+    else user found
+        API -> API: verify password (bcrypt compare with hashed_password)
+        alt password mismatch
+            Frontend <-- API: 401 Unauthorized (invalid credentials)
+            deactivate API
+        else password matches
+            API -> API: generate JWT (user_id, email, exp, iat)
+            note right of API
+                JWT should include:
+                - user_id (sub claim)
+                - email
+                - issued_at (iat)
+                - expiration (exp)
+                - token type (typ)
+            end note
+            Frontend <-- API: 200 OK (JWT, user data, expires_in)
+            deactivate API
+        end
+    end
+end
+Frontend -> Frontend: store JWT (localStorage or secure cookie)
+User <-- Frontend: redirect to dashboard
+@enduml
