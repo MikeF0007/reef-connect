@@ -1,5 +1,5 @@
 @startuml
-' ReefConnect ER Diagram (User & Profile)
+' User & User Profile ER Diagram
 
 hide circle
 skinparam linetype ortho
@@ -10,7 +10,7 @@ skinparam entity {
   FontColor #0F172A
 }
 
-entity "user" as user {
+entity "users" as users {
   *id : uuid
   --
   *email : text
@@ -25,7 +25,7 @@ entity "user" as user {
   *updated_at : timestamptz
 }
 
-entity "user_profile" as user_profile {
+entity "user_profiles" as user_profiles {
   *id : uuid
   *user_id : uuid
   --
@@ -42,19 +42,30 @@ entity "user_profile" as user_profile {
   *updated_at : timestamptz
 }
 
-entity "privacy_setting" as privacy_setting {
+entity "user_settings" as user_settings {
   *id : uuid
   *user_id : uuid
   --
-  profile_visibility : text
-  dive_logs_visibility : text
-  media_visibility : text
-  stats_visibility : text
+  preferred_units : text (imperial | metric)
+  timezone : text
+  language : text
   *created_at : timestamptz
   *updated_at : timestamptz
 }
 
-entity "user_certification" as user_certification {
+entity "privacy_settings" as privacy_settings {
+  *id : uuid
+  *user_id : uuid
+  --
+  profile_visibility : text (public | private)
+  dive_logs_visibility : text (public | private)
+  media_visibility : text (public | private)
+  stats_visibility : text (public | private)
+  *created_at : timestamptz
+  *updated_at : timestamptz
+}
+
+entity "user_certifications" as user_certifications {
   *id : uuid
   *user_id : uuid
   --
@@ -70,8 +81,17 @@ entity "user_certification" as user_certification {
 
 
 ' Relationships
-user ||--|| user_profile : "1:1"
-user ||--|| privacy_setting : "1:1"
-user ||--o{ user_certification : "1:many"
+users ||--|| user_profiles : "1:1"
+users ||--|| user_settings : "1:1"
+users ||--|| privacy_settings : "1:1"
+users ||--o{ user_certifications : "1:many"
+
+note bottom of users
+  TODO: Tentative plan, need to formalize in sequence diagram
+  **Deletion Cascade Behavior:**
+  - Anonymize social data: replace display_name with "Deleted User"
+  - Keep social relationships but anonymize interactions
+  - Leaderboards: remove immediately on deletion
+end note
 
 @enduml

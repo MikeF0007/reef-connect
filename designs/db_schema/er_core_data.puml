@@ -1,0 +1,198 @@
+@startuml
+' Core Data ER diagram: dive_logs, media, species, tags
+
+entity "users" as users {
+  * id : uuid
+  --
+  (see er_user_profile.puml for remaining attributes)
+}
+
+entity "dive_logs" as dive_logs {
+  * id : uuid
+  * user_id : uuid FK
+  * dive_date : date
+  * dive_title : text
+  * dive_site : text
+  * duration_minutes : integer
+  --
+  ' Dive Basics
+  dive_period : text (morning | afternoon | night)
+  dive_start_type : text (boat | shore)
+  dive_type : text (reef | wall | drift | cave | deep | shipwreck | other)
+  dive_purpose : text (recreational | training | research | restoration | other)
+  --
+  ' Measurements
+  max_depth_ft : numeric
+  avg_depth_ft : numeric
+  visibility_ft : numeric
+  visibility_description : text
+  location : geography(Point,4326)
+  --
+  ' Environmental
+  weather : text (sunny | partly cloudy | cloudy | rainy | windy | foggy)
+  air_temp_f : numeric
+  surface_temp_f : numeric
+  bottom_temp_f : numeric
+  water_type : text (salt | fresh | brackish)
+  body_of_water : text (ocean | lake | river | quarry | cenote)
+  wave : text (none | small | medium | large)
+  current : text (none | light | moderate | strong)
+  surge : text (none | light | moderate | strong)
+  --
+  ' Equipment
+  equipment : jsonb
+  gas_mix : jsonb
+  cylinder_pressure : jsonb
+  safety_stops : jsonb
+  --
+  ' People/Experience
+  buddy : text
+  dive_center : text
+  experience_feeling : text (amazing | good | average | poor)
+  experience_rating : integer (1 to 5)
+  public_notes : text
+  private_notes : text
+  --
+  ' Visibility
+  log_visibility : text (public | private | unlisted)
+  --
+  ' Meta
+  metadata : jsonb
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "media" as media {
+  * id : uuid
+  * user_id : uuid FK
+  * status : text (pending | uploading | uploaded | processing | processed | failed)
+  * storage_key : text
+  * type : text (image | video)
+  --
+  ' Associations
+  dive_log_id : uuid FK (nullable)
+  --
+  ' Media Details
+  mime_type : text
+  file_size_bytes : bigint
+  width : integer
+  height : integer
+  duration_seconds : numeric
+  taken_at : timestamptz
+  exif : jsonb
+  processed_versions : jsonb
+  --
+  ' Visibility
+  media_visibility : text (public | private | unlisted)
+  --
+  ' Meta
+  error_details : text
+  ml_tagging_status : text (pending | success | failed)
+  metadata : jsonb
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "species" as species {
+  * id : uuid
+  * ml_label : text UNIQUE
+  * scientific_name : text
+  * common_name : text
+  --
+  ' Species Details
+  slug : text UNIQUE
+  description : text
+  habitat : jsonb
+  locations : jsonb
+  taxonomy : jsonb
+  image_urls : jsonb
+  --
+  ' Visibility
+  metadata : jsonb
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "media_species_tags" as tags {
+  * media_id : uuid FK
+  * species_id : uuid FK
+  * source : text (ml | user)
+  --
+  UNIQUE (media_id, species_id)
+  model_confidence : numeric
+  tagged_at : timestamptz
+}
+
+entity "scubadex_entries" as scubadex {
+  * id : uuid
+  * user_id : uuid FK
+  * species_id : uuid FK
+  --
+  UNIQUE (user_id, species_id)
+  times_encountered : integer
+  date_first_encountered : date
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+' Relationships
+users ||--o{ dive_logs : "owns"
+users ||--o{ media : "uploads"
+dive_logs ||--o{ media : "associated with"
+media ||--o{ tags : "has tags"
+species ||--o{ tags : "tagged in"
+users ||--o| tags : "tags (optional)"
+users ||--o{ scubadex : "collection"
+species ||--o{ scubadex : "collected by"
+
+note right of dive_logs
+  Required: id, user_id, dive_date, dive_title, dive_site, duration_minutes, created_at, updated_at
+  Optional: All other fields (environmental, equipment, experience, etc.)
+  - Equipment/gas/cylinders stored as JSONB for flexibility
+
+  **Units:**
+  - Values stored in imperial (feet/Fahrenheit/PSI), convert in API or in frontend as needed
+  - Preferred units can be maintained in user settings/profile
+
+  **Location:**
+  - PostGIS geography field provides spatial indexing and querying
+  - Use ST_Y(location) and ST_X(location) to extract lat/lng for APIs
+
+  **Deletion Cascade Behavior:**
+  - Dive log deleted → SET NULL on media.dive_log_id (media survives)
+end note
+
+note right of media
+  - `dive_log_id` is nullable since media can exist independently
+  - `error_details`: populated if status or tagging_status = failed
+
+  **Deletion Cascade Behavior:**
+  - Media deleted → CASCADE delete media_species_tags
+end note
+
+note right of species
+  - Seeded from ML labels (ml_labels.json)
+  - `ml_label` is the canonical identifier from ML model
+  - `image_urls` is JSONB array for species variations (male/female, different colorations, etc.)
+  - `description`: Markdown text with species facts and information
+  - `habitat`: Structured habitat data (depth_range, environment, water_type, etc.)
+  - `locations`: JSONB array of common regions/locations (e.g., ["Great Barrier Reef", "Hawaii", "Caribbean"])
+
+  **Deletion Cascade Behavior:**
+  - Species cannot be deleted if referenced (protect integrity)
+end note
+
+note right of tags
+  - `source` enum: ml | user
+  - `model_confidence`: 0-1 range for ML tags
+end note
+
+note right of scubadex
+  - Denormalized user species collection derived from media_species_tags
+  - Event-driven: maintained by MaterializedDataWorker consuming tagging/media-related events
+  - `times_encountered`: aggregate count updated via SpeciesTagged/SpeciesTagRemoved/MediaDeleted events
+  - `date_first_encountered`: tracked from first tag
+  - UNIQUE (`user_id`, `species_id`): one entry per user per species
+end note
+
+@enduml
