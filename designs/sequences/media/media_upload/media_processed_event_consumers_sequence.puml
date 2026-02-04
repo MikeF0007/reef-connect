@@ -25,7 +25,7 @@ end par
 par API Cache Invalidation
     Events -> API: consume MediaProcessed event (media_id)
     activate API
-    API -> API: invalidate media metadata cache (media_id)
+    API -> API: invalidate media cache (media_id)
     deactivate API
 end par
 @enduml

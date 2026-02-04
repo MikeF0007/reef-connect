@@ -43,7 +43,7 @@ package "ReefConnect System" {
     ' Data Layer
     database "Relational DB" as db <<PostgreSQL>>
     database "Blob Storage" as blob <<S3/MinIO>>
-    queue "Event Bus" as event_bus <<Pub/Sub>>
+    queue "Event Bus" as event_bus <<Redpanda>>
 }
 
 ' User interactions

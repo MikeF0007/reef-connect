@@ -1,4 +1,4 @@
-@startuml User Login & JWT Issuance
+@startuml User Login & JWT Issuance Sequence
 actor User
 participant Frontend
 participant "API Server" as API

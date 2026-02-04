@@ -38,7 +38,7 @@ else validation succeeds
     DB --> API: dive_log_id
     API -> API: if media_ids provided in request, link media to dive log
     API -> DB: update media records (set dive_log_id for media_ids)
-    API -> API: invalidate media metadata cache (for media_ids)
+    API -> API: invalidate media cache (for media_ids)
     API -> Events: publish DiveLogAdded event (dive_log_id, user_id, provided_fields)
     API --> Frontend: 201 Created (dive_log_id)
     deactivate API
@@ -59,7 +59,7 @@ else validation succeeds
     DB --> API: update result
     API -> API: if media_ids provided in request, link media to dive log
     API -> DB: update media records (set dive_log_id for media_ids)
-    API -> API: invalidate media metadata cache (for media_ids)
+    API -> API: invalidate media cache (for media_ids)
     API -> Events: publish DiveLogUpdated event (dive_log_id, user_id, changed_fields)
     API --> Frontend: 200 OK (updated log)
     deactivate API
@@ -75,7 +75,7 @@ API -> DB: delete dive log record (dive_log_id, user_id)
 DB --> API: delete result
 alt delete succeeds
     API -> DB: fetch associated media_ids for dive_log_id
-    API -> API: invalidate media metadata cache (for associated media_ids)
+    API -> API: invalidate media cache (for associated media_ids)
     API -> Events: publish DiveLogDeleted event (dive_log_id, user_id)
     API --> Frontend: 200 OK (deleted)
 else delete fails

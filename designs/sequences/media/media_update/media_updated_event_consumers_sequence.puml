@@ -6,7 +6,7 @@ participant "API Server" as API
 par API Cache Invalidation
 	Events -> API: consume MediaUpdated (media_id, user_id, changed_fields)
 	activate API
-	API -> API: invalidate media metadata cache (media_id)
+	API -> API: invalidate media cache (media_id)
 	API -> API: if dive_log_id in changed_fields, invalidate dive log cache for that dive_log_id
 	deactivate API
 end par

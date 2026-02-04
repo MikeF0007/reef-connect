@@ -1,4 +1,4 @@
-@startuml User Registration Manual Email Entry & Profile Creation
+@startuml User Registration Manual Email Entry & Profile Creation Sequence
 actor User
 participant Frontend
 participant "API Server" as API

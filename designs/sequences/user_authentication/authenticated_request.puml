@@ -1,4 +1,4 @@
-@startuml Authenticated API Request & JWT Validation
+@startuml Authenticated API Request & JWT Validation Sequence
 actor User
 participant Frontend
 participant "API Server" as API

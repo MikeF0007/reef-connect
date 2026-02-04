@@ -4,7 +4,6 @@ participant Frontend
 participant "API Server" as API
 database "Blob Storage" as Blob
 database "Database" as DB
-participant "CDN" as CDN
 
 == User Requests Media Deletion ==
 User -> Frontend: selects media file(s) to delete
@@ -21,9 +20,8 @@ loop for each media_id
         alt blob deletion succeeds
             Blob --> API: 204 No Content
             deactivate Blob
-            API -> DB: delete media metadata
-            DB --> API: metadata deleted
-            API -> CDN: invalidate cache (media_id)
+            API -> DB: delete media data
+            DB --> API: data deleted
             API -> Events: publish MediaDeleted event (media_id, user_id)
             note right of API
                 If a dive log disassociation occurs by way of media deletion through media gallery,

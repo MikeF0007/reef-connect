@@ -8,22 +8,16 @@ database "Database" as DB
 par ScubaDex Update
     Events -> MaterializedDataWorker: consume SpeciesTagRemoved (user_id, species_id, media_id)
     activate MaterializedDataWorker
-    note right of MaterializedDataWorker
-        Debounce: max 1 worker per user.
-        Debounce timer resets with each new SpeciesTagged,
-        SpeciesTagRemoved, and MediaDeleted event.
-        Update scubadex_entries after burst of events.
-    end note
     MaterializedDataWorker -> DB: DECREMENT times_encountered\nfor scubadex_entries\n(user_id, species_id)
     MaterializedDataWorker -> DB: if times_encountered = 0,\ndelete scubadex_entries row
     MaterializedDataWorker -> Events: publish ScubaDexUpdated\n(user_id, species_id)
     deactivate MaterializedDataWorker
 end par
 
-par API Metadata Invalidation
+par API Cache Invalidation
     Events -> API: consume SpeciesTagRemoved (media_id, species_id)
     activate API
-    API -> API: invalidate media metadata cache (media_id)
+    API -> API: invalidate media cache (media_id)
     deactivate API
 end par
 @enduml

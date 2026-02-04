@@ -1,4 +1,4 @@
-@startuml View/Edit Own Profile
+@startuml View/Edit Own Profile Sequence
 actor User
 participant Frontend
 participant "API Server" as API

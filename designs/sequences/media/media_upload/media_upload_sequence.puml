@@ -1,16 +1,13 @@
 @startuml Media Upload Sequence
 actor User
 participant Frontend
-participant "Load Balancer/API Gateway" as LB
 participant "API Server" as API
 database "Blob Storage" as Blob
 database "Database" as DB
-participant "CDN" as CDN
 
 == User Uploads Media File(s) ==
 User -> Frontend: selects media file(s)
-Frontend -> LB: request presigned URLs\n(array of files/metadata)
-LB -> API: route request
+Frontend -> API: request presigned URLs\n(array of files/metadata)
 activate API
 loop for each file
     API -> API: validate auth & authorization
@@ -27,18 +24,15 @@ loop for each file
     end
 end
 alt all files invalid
-    API --> LB: 400 Bad Request\n(array of error messages)
-    LB --> Frontend: 400 Bad Request\n(array of error messages)
+    API --> Frontend: 400 Bad Request\n(array of error messages)
 else at least one file valid
-    API --> LB: 200 OK\n(array of results: valid media_ids/presigned URLs and error messages)
-    LB --> Frontend: 200 OK\n(array of results: valid media_ids/presigned URLs and error messages)
+    API --> Frontend: 200 OK\n(array of results: valid media_ids/presigned URLs and error messages)
 end
 deactivate API
 
 == Direct Upload to Blob Storage ==
 par Each Valid File Upload
-    Frontend -> LB: update status\n(media_id, status: UPLOADING)
-    LB -> API: route request
+    Frontend -> API: update status\n(media_id, status: UPLOADING)
     API -> DB: update media record\n(status: UPLOADING)
     Frontend --> User: show upload progress (0%)
     Frontend -> Blob: PUT media file\n(with progress updates)
@@ -49,15 +43,13 @@ par Each Valid File Upload
     end
     alt upload fails
         Blob --> Frontend: upload error
-        Frontend -> LB: update status\n(media_id, status: FAILED)
-        LB -> API: route request
+        Frontend -> API: update status\n(media_id, status: FAILED)
         API -> DB: update media record\n(status: FAILED, error details)
         Frontend --> User: show retry button for file
     else upload succeeds
         Blob --> Frontend: 200 OK
         deactivate Blob
-        Frontend -> LB: update status\n(media_id, status: UPLOADED)
-        LB -> API: route request
+        Frontend -> API: update status\n(media_id, status: UPLOADED)
         activate API
         API -> DB: update media record\n(status: UPLOADED)
         API -> Events: publish MediaUploaded event\n(media_id, user_id)
@@ -65,9 +57,7 @@ par Each Valid File Upload
             Users should not be able to update any media that has not fully uploaded and emitted
             this event.
         end note
-        API -> CDN: (to-do at scale) warm cache for media_id
-        API --> LB: 200 OK
-        LB --> Frontend: 200 OK
+        API --> Frontend: 200 OK
         deactivate API
         Frontend --> User: upload complete,\nprocessing...
     end

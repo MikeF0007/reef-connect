@@ -20,7 +20,7 @@ par API Cache Invalidation (DiveLogAdded)
     Events -> API: consume DiveLogAdded (dive_log_id, user_id, provided_fields)
     activate API
     API -> API: invalidate dive log API cache (user_id, dive_log_id)
-    API -> API: if media_ids in provided_fields, invalidate media metadata cache for those media_ids
+    API -> API: if media_ids in provided_fields, invalidate media cache for those media_ids
     deactivate API
 end par
 
@@ -40,7 +40,7 @@ par API Cache Invalidation (DiveLogUpdated)
     Events -> API: consume DiveLogUpdated (dive_log_id, user_id, changed_fields)
     activate API
     API -> API: invalidate dive log API cache (user_id, dive_log_id)
-    API -> API: if media_ids in changed_fields, invalidate media metadata cache for those media_ids
+    API -> API: if media_ids in changed_fields, invalidate media cache for those media_ids
     deactivate API
 end par
 
@@ -63,7 +63,7 @@ par API Cache Invalidation (DiveLogDeleted)
     activate API
     API -> DB: fetch associated media_ids for dive_log_id
     API -> API: invalidate dive log API cache (user_id, dive_log_id)
-    API -> API: invalidate media metadata cache (for associated media_ids)
+    API -> API: invalidate media cache (for associated media_ids)
     deactivate API
 end par
 @enduml

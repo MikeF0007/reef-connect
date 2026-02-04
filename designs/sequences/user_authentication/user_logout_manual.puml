@@ -1,4 +1,4 @@
-@startuml User Logout & Token Invalidation
+@startuml User Logout & Token Invalidation Sequence
 actor User
 participant Frontend
 participant "API Server" as API
@@ -12,7 +12,7 @@ API -> API: extract JWT from Authorization header
 alt JWT missing or invalid
     API -> API: treat as already logged out (no error)
 else JWT valid
-    note right of API       
+    note right of API
         Since using stateless strategy:
         - No server-side action needed (JWT becomes invalid on client)
         - Client should discard token

@@ -1,4 +1,4 @@
-@startuml OAuth 2.0 Login Flow
+@startuml OAuth 2.0 Login Sequence
 actor User
 participant Frontend
 participant "API Server" as API
@@ -47,13 +47,13 @@ else state valid
     OAuth -> OAuth: validate authorization code
     API <-- OAuth: access_token, token_type, expires_in, refresh_token (optional)
     deactivate OAuth
-    
+
     == Retrieve User Info from Provider ==
     API -> ProviderAPI: GET /userinfo (with access_token)
     activate ProviderAPI
     API <-- ProviderAPI: user data (provider_user_id, email, name, picture)
     deactivate ProviderAPI
-    
+
     == Create or Update User ==
     API -> DB: query user by provider_user_id and provider
     API <-- DB: user record (or null)
@@ -77,10 +77,10 @@ else state valid
         API -> DB: update user data (name, profile_picture, last_login)
         API <-- DB: updated
     end
-    
+
     API -> DB: optionally store OAuth tokens (access_token, refresh_token, expires_at)
     API <-- DB: tokens stored
-    
+
     API -> API: generate application JWT (user_id, email, exp)
     Frontend <-- API : 200 OK (JWT, user data, redirect URL)
     deactivate API

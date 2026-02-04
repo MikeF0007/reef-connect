@@ -79,7 +79,6 @@ entity "user_certifications" as user_certifications {
   *created_at : timestamptz
 }
 
-
 ' Relationships
 users ||--|| user_profiles : "1:1"
 users ||--|| user_settings : "1:1"

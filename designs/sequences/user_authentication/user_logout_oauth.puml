@@ -1,4 +1,4 @@
-@startuml OAuth Logout
+@startuml OAuth 2.0 Logout Sequence
 actor User
 participant Frontend
 participant "API Server" as API
@@ -22,7 +22,7 @@ alt stored OAuth access_token exists
     API <-- OAuth: 200 OK (revoked)
     deactivate OAuth
     note right of API
-        Revocation invalidates user's 
+        Revocation invalidates user's
         data access from your app's perspective
     end note
 else no stored token
