@@ -57,7 +57,7 @@ entity "dive_logs" as dive_logs {
   log_visibility : text (public | private | unlisted)
   --
   ' Meta
-  metadata : jsonb
+metadata : jsonb
   created_at : timestamptz
   updated_at : timestamptz
 }
@@ -71,6 +71,7 @@ entity "media" as media {
   --
   ' Associations
   dive_log_id : uuid FK (nullable)
+  ml_tagging_status : text (pending | success | failed)
   --
   ' Media Details
   mime_type : text
@@ -87,7 +88,6 @@ entity "media" as media {
   --
   ' Meta
   error_details : text
-  ml_tagging_status : text (pending | success | failed)
   metadata : jsonb
   created_at : timestamptz
   updated_at : timestamptz
@@ -107,7 +107,7 @@ entity "species" as species {
   taxonomy : jsonb
   image_urls : jsonb
   --
-  ' Visibility
+  ' Meta
   metadata : jsonb
   created_at : timestamptz
   updated_at : timestamptz

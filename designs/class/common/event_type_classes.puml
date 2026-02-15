@@ -1,0 +1,188 @@
+@startuml Event Classes
+
+package "common.event_types.PlantUML file: event_type_classes" <<frame>> {
+    abstract class Event {
+        -- description --
+        Base class for all domain events in Reef Connect, providing common attributes and to_dict
+        interface.
+        -- attributes --
+        + event_id: UUID -- Unique identifier for the event.
+        + timestamp: datetime -- Time when the event was created.
+        -- methods --
+        {abstract} + to_dict(): dict -- Interface for convert event data to dict for publishing.
+    }
+
+    class MediaUploadedEvent {
+        -- description --
+        Event fired when a media file is uploaded by a user, triggering processing workflows.
+        -- attributes --
+        + media_id: str -- Unique identifier of the uploaded media item.
+        + user_id: str -- Unique identifier of the user who uploaded and owns the media.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "media_uploaded" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class MediaProcessedEvent {
+        -- description --
+        Event fired when media processing (e.g., thumbnail generation, format optimization) is
+        completed.
+        -- attributes --
+        + media_id: str -- Unique identifier of the processed media item.
+        + user_id: str -- Unique identifier of the user who owns the media.
+        + metadata: dict -- Metadata extracted from the media during processing (e.g., EXIF data).
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "media_processed" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class MediaProcessingFailedEvent {
+        -- description --
+        Event fired when media processing fails, including error details for debugging.
+        -- attributes --
+        + media_id: str -- Unique identifier of the media item that failed processing.
+        + user_id: str -- Unique identifier of the user who owns the media.
+        + error_message: str -- Description of the error that occurred during processing.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "media_processing_failed" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class MediaUpdatedEvent {
+        -- description --
+        Event fired when media metadata or status is updated.
+        -- attributes --
+        + media_id: str -- Unique identifier of the updated media item.
+        + user_id: str -- Unique identifier of the user who owns and updated the media.
+        + changed_fields: dict -- Dictionary of fields that were changed with their new values.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "media_updated" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class MediaDeletedEvent {
+        -- description --
+        Event fired when a media item is deleted by a user.
+        -- attributes --
+        + media_id: str -- Unique identifier of the deleted media item.
+        + user_id: str -- Unique identifier of the user who owned and deleted the media.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "media_deleted" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class MLSpeciesTaggingCompleteEvent {
+        -- description --
+        Event fired when ML-based species tagging on media is completed, providing detected species.
+        -- attributes --
+        + media_id: str -- Unique identifier of the media item that was tagged.
+        + user_id: str -- Unique identifier of the user who owns the media related to the tagging.
+        + species_tags: list[dict] -- List of detected species tags, each with 'species_id',
+            'ml_confidence', and 'tagged_at'.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "ml_species_tagging_complete" -- Routing key for event
+            handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class ScubaDexUpdatedEvent {
+        -- description --
+        Event fired when a user's ScubaDex is updated due to tagging or media deletion actions,
+        containing a batch of species changes.
+        -- attributes --
+        + user_id: str -- Unique identifier of the user whose ScubaDex was updated.
+        + updates: list[dict]  -- List of updates, each with 'species_id' and 'action' ('added' or
+            'removed').
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "scubadex_updated" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class SpeciesTaggedEvent {
+        -- description --
+        Event fired when a species is tagged on a media item by a user.
+        -- attributes --
+        + media_id: str -- Unique identifier of the media item that was tagged.
+        + user_id: str -- Unique identifier of the user who tagged the species and owns the tag.
+        + species_id: str -- Unique identifier of the species that was tagged.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "species_tagged" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class SpeciesTagRemovedEvent {
+        -- description --
+        Event fired when a species tag is removed from a media item by a user.
+        -- attributes --
+        + media_id: str -- Unique identifier of the media item from which the tag was removed.
+        + user_id: str -- Unique identifier of the user who owned and removed the species tag.
+        + species_id: str -- Unique identifier of the species of the removed tag.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "species_tag_removed" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class DiveLogAddedEvent {
+        -- description --
+        Event fired when a new dive log is added by a user.
+        -- attributes --
+        + dive_log_id: str -- Unique identifier of the added dive log.
+        + user_id: str -- Unique identifier of the user who added and owns the dive log.
+        + provided_fields: dict -- Dictionary of fields provided for the new dive log with their
+            values.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "dive_log_added" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class DiveLogUpdatedEvent {
+        -- description --
+        Event fired when a dive log is updated by a user.
+        -- attributes --
+        + dive_log_id: str -- Unique identifier of the updated dive log.
+        + user_id: str -- Unique identifier of the user who owns and updated the dive log.
+        + changed_fields: dict
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "dive_log_updated" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+
+    class DiveLogDeletedEvent {
+        -- description --
+        Event fired when a dive log is deleted by a user.
+        -- attributes --
+        + dive_log_id: str -- Unique identifier of the deleted dive log.
+        + user_id: str -- Unique identifier of the user who owned and deleted the dive log.
+        -- class attributes --
+        {static} + ROUTING_KEY: str = "dive_log_deleted" -- Routing key for event handling.
+        -- methods --
+        + to_dict(): dict -- Converts the event data to a dictionary format for publishing.
+    }
+}
+
+' Relationships
+Event <|-- MediaUploadedEvent
+Event <|-- MediaProcessedEvent
+Event <|-- MediaProcessingFailedEvent
+Event <|-- MediaUpdatedEvent
+Event <|-- MediaDeletedEvent
+Event <|-- MLSpeciesTaggingCompleteEvent
+Event <|-- ScubaDexUpdatedEvent
+Event <|-- SpeciesTaggedEvent
+Event <|-- SpeciesTagRemovedEvent
+Event <|-- DiveLogAddedEvent
+Event <|-- DiveLogUpdatedEvent
+Event <|-- DiveLogDeletedEvent
+
+@enduml

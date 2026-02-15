@@ -24,15 +24,26 @@ Coming soon - will include:
 Planned structure:
 ```
 backend/
-├── app/
-│   ├── api/          # API routes and endpoints
-│   ├── models/       # SQLAlchemy models
-│   ├── schemas/      # Pydantic schemas
-│   ├── services/     # Business logic
-│   └── core/         # Config, security, database
-├── tests/            # Test suite
-├── alembic/          # Database migrations
-└── requirements.txt  # Python dependencies
+├── api_service/                # API service for external clients (i.e. frontend)
+│   ├── app/                      # App structured for FastAPI
+│   │   ├── api/                    # API routes and endpoints
+│   │   ├── models/                 # SQLAlchemy models
+│   │   ├── schemas/                # Pydantic schemas
+│   │   ├── services/               # Business logic
+│   │   └── core/                   # Config, security, database
+│   ├── tests/                      # Test suite
+│   ├── alembic/                    # Database migrations
+│   └── requirements.txt            # Python dependencies
+├── common/                     # Common classes, enums, utilities, config, etc.
+├── materialized_data_worker/   # Async worker to produce materialized data (i.e. ScubaDex)
+│   ├── app/                      # Main worker code
+│   └── tests/                    # Test suite
+├── media_worker/               # Async worker to process media uploaded by users
+│   ├── app/                      # Main worker code
+│   └── tests/                    # Worker tests
+└── ml_tagger_worker/           # Async worker to use ML model to tag fish species in user media
+    ├── app/                      # Main worker code
+    └── tests/                    # Worker tests
 ```
 
 ## API Documentation

@@ -1,0 +1,94 @@
+@startuml MediaWorker Service Classes
+
+package "media_worker.PlantUML file: media_worker_classes" <<frame>> {
+    class MediaWorkerContainerController {
+        -- description --
+        Initializes and manages the lifecycle of the MediaWorkerService, including setting up the
+        Kafka manager for event consumption/production, and handling graceful shutdown.
+        -- attributes --
+        - event_service: MediaWorkerEventService -- For routing media-related events to the
+            MediaWorker via configured callbacks.
+    }
+
+    class MediaWorkerEventService {
+        -- description --
+        Service for handling incoming events related to media processing, Acts as router with its
+        methods serving as callbacks for events received by the ContainerController. Delegates
+        actual media processing logic to MediaWorker.
+        -- attributes --
+        - media_worker: MediaWorker -- For delegating media event processing to.
+        -- methods --
+        + __init__(event_publisher: IEventPublisher) -- Initializes the MediaWorkerEventService with
+            core MediaWorker object and appropriate event publishing interface.
+        + handle_media_uploaded(event: MediaUploadedEvent) -- Callback for handling the
+            MediaUploadedEvent, delegating processing of the event to the MediaWorker.
+    }
+
+    class MediaWorker {
+        -- description --
+        Responsible for orchestrating the workflow of processing uploaded media, including
+        downloading the raw media from blob storage, performing processing tasks (generating
+        thumbnails, optimizing format, extracting metadata), uploading processed media back to blob
+        storage, updating the database with media status and metadata, and publishing a
+        MediaProcessedEvent upon successful completion or MediaProcessingFailedEvent if any step
+        fails.
+        -- attributes --
+        - blob_client: BlobStorageClient -- For retrieving media to process from and storing media
+            produced (i.e. thumbnails) to blob storage.
+        - media_repo: IMediaRepository -- For retrieving and updating media records as part of the
+            processing workflow.
+        - event_publisher: IEventPublisher -- For publishing events related to media processing
+            outcomes, namely MediaProcessedEvent or ProcessingFailedEvent.
+        - media_processor: MediaProcessor -- For performing media processing tasks like thumbnail
+            generation, format optimization, and metadata extraction.
+        -- methods --
+        + __init__(event_publisher: IEventPublisher) -- Initializes the MediaWorker with necessary
+            MediaProcessor, IMediaRepository, BlobStorageClient and appropriate event publishing
+            interface.
+        + process_media_uploaded(event: MediaUploadedEvent) -- Following a MediaUploadedEvent,
+            orchestrates the workflow of downloading the media, processing it (generating
+            thumbnails, optimizing format, extracting metadata), uploading processed media back to
+            blob storage, updating the database with media status and metadata, and publishing a
+            MediaProcessedEvent upon successful completion or ProcessingFailedEvent if any step
+            fails.
+    }
+
+    class MediaProcessor {
+        -- description --
+        Provides methods for performing media processing tasks such as generating thumbnails,
+        optimizing format, and extracting metadata from media files.
+        -- methods --
+        + generate_thumbnails(decoded_media): list[dict] -- Generates thumbnails of various sizes
+            from the decoded media and returns a list of dictionaries containing thumbnail metadata
+            (e.g., storage key, dimensions).
+        + optimize_format(decoded_media): bytes -- Optimizes the media format for web delivery
+            (e.g., compressing images, converting videos to more efficient codecs) and returns the
+            optimized media as bytes.
+        + extract_metadata(decoded_media): dict -- Extracts metadata from the media file
+            (e.g., EXIF data from images, codec and duration info from videos) and returns it as a
+            dictionary.
+    }
+}
+
+' Classes from other packages (referenced in relationships)
+package "common.db.PlantUML file: db_classes" <<frame>> {
+    interface IMediaRepository
+}
+package "common.utils.PlantUML file: util_classes" <<frame>> {
+    class BlobStorageClient
+}
+package " common.container.PlantUML file: container_classes" <<frame>> {
+    interface IEventPublisher
+    class KafkaEventBasedContainerController
+}
+
+' Relationships
+KafkaEventBasedContainerController <|-- MediaWorkerContainerController : inherits
+MediaWorkerContainerController --> MediaWorkerEventService : sets up/callbacks to
+MediaWorkerEventService --> MediaWorker : delegates to
+MediaWorker --> MediaProcessor : uses
+MediaWorker --> BlobStorageClient : uses
+MediaWorker --> IMediaRepository : uses
+MediaWorker --> IEventPublisher : uses
+
+@enduml

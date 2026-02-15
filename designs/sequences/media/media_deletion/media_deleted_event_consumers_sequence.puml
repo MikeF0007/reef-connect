@@ -2,6 +2,7 @@
 queue "Event Bus" as Events
 participant "API Server" as API
 participant "Materialized Data Worker" as MaterializedDataWorker
+participant "ScubaDex Repository" as ScubaDexRepository
 database "Database" as DB
 
 == Parallel consumers of MediaDeleted event ==
@@ -17,9 +18,11 @@ end par
 par ScubaDex Update
     Events -> MaterializedDataWorker: consume MediaDeleted event (media_id)
     activate MaterializedDataWorker
-    MaterializedDataWorker -> DB: fetch user's affected tags/species
-    MaterializedDataWorker -> DB: for each affected species,\nDECREMENT times_encountered\nfor scubadex_entries\n(user_id, species_id)
-    MaterializedDataWorker -> DB: if times_encountered = 0,\ndelete scubadex_entries row
+    MaterializedDataWorker -> DB: fetch user's affected species tags for media_id
+    loop for each affected species
+        MaterializedDataWorker -> ScubaDexRepository: remove_species_encounter(user_id, species_id)
+        ScubaDexRepository -> DB: update materialized encounter count
+    end
     MaterializedDataWorker -> Events: publish ScubaDexUpdated\n(user_id)
     deactivate MaterializedDataWorker
 end par

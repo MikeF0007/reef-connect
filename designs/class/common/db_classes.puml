@@ -1,0 +1,169 @@
+@startuml Database Classes
+
+package "common.db.PlantUML file: db_classes" <<frame>> {
+    ' ---- Generic domain interfaces ---- '
+
+    interface IScubaDexRepository {
+        -- description --
+        Defines the contract for ScubaDex materialized data management. Maintains encounter
+        counts for fast queries while ensuring consistency through reconciliation.
+        -- methods --
+        + record_species_encounter(user_id: UUID, species_id: UUID): void -- Records a new encounter
+            with a species, updating the materialized count.
+        + remove_species_encounter(user_id: UUID, species_id: UUID): void -- Removes one encounter
+            with a species, updating the materialized count.
+        + clear_species_encounters(user_id: UUID, species_id: UUID): void -- Removes all encounters
+            with a species by deleting the materialized entry.
+        + get_encounter_count(user_id: UUID, species_id: UUID): int -- Returns the current
+            materialized encounter count.
+        + get_user_species_encounters(user_id: UUID): List[Tuple[UUID, int]] -- Returns all species
+            encountered by a user with their current counts.
+        + get_species_for_media(media_id: UUID): List[Tuple[UUID, UUID]] -- Gets all species
+            associated with a media item.
+        + reconcile_user_dex(user_id: UUID): void -- Rebuilds the user's ScubaDex by recounting all
+            their species tags from the source of truth. This ensures complete consistency by
+            accounting for possible stale/inaccurate or missing entries. As ScubaDex is
+            materialized, it isn't the source of truth; thus full reconciliation is possible (and
+            realistically needed). This should be performed periodically as background job
+            (scheduled, not tied to event) but can also be triggered manually if needed.
+    }
+
+    interface IMediaRepository {
+        -- description --
+        Defines the contract for media data management operations.
+        -- methods --
+        + create_media(media: Media): UUID -- Creates a new media entry in the database with the
+            initial status of 'PENDING' and returns the its ID.
+        + get_media(media_id: UUID): Optional[Media] -- Retrieves a media item by its ID, returning
+            None if not found.
+        + get_media_by_user(user_id: UUID, media_type: Optional[str], limit: Optional[int],
+            offset: Optional[int]): List[Media] -- Retrieves media items for a user, optionally
+            filtered by media type and paginated.
+        + get_media_by_dive_log(dive_log_id: UUID, media_type: Optional[str]): List[Media] --
+            Retrieves media items associated with a specific dive log, optionally filtered by media
+            type.
+        + get_media_by_species_tag(user_id: UUID, species_id: UUID, media_type: Optional[str],
+            limit: Optional[int], offset: Optional[int]): List[Media] -- Retrieves media items for
+            a user filtered by species tag and optionally by media type.
+        + update_media_status(media_id: UUID, status: str): void -- Updates the processing status of
+            a media item (e.g., 'PENDING'/'UPLOADING').
+        + update_media_metadata(media_id: UUID, metadata: dict): void -- Updates the metadata of a
+            media item by completely replacing the existing metadata dict with the provided one.
+            To clear a field, simply omit it from the new metadata dict.
+        + delete_media(media_id: UUID): void -- Deletes a media item by its ID, along with any
+            associated species tags (cascading delete).
+    }
+
+    interface IDiveLogRepository {
+        -- description --
+        Defines the contract for dive log data management operations.
+        -- methods --
+        + create_dive_log(dive_log: DiveLog): UUID -- Creates a new dive log entry and returns its
+            ID.
+        + get_dive_log(dive_log_id: UUID): Optional[DiveLog] -- Retrieves a dive log by its ID,
+            returning None if not found.
+        + get_dive_logs_by_user(user_id: UUID, limit: Optional[int],
+            offset: Optional[int]): List[DiveLog] -- Retrieves dive logs for a user,
+            ordered by dive date descending, with optional pagination.
+        + get_dive_logs_by_location(location: str, limit: Optional[int],
+            offset: Optional[int]): List[DiveLog] -- Retrieves dive logs by location,
+            with optional pagination.
+        + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
+            limit: Optional[int], offset: Optional[int]): List[DiveLog] -- Retrieves
+            dive logs for a user within a specific date range, ordered by dive date descending.
+        + update_dive_log(dive_log_id: UUID, updates: dict): void -- Updates a dive log by
+            completely replacing the existing fields with the provided updates dict. To clear a
+            field, omit it from the updates dict.
+        + delete_dive_log(dive_log_id: UUID): void -- Deletes a dive log by its ID, along with any
+            associated media items (cascading delete).
+    }
+
+    ' ---- Database-based implementation classes ---- '
+
+    class DatabaseClient {
+        -- description --
+        Database client for common connection and session lifecycle management.
+        -- methods --
+        + get_session(): AsyncSession -- Returns a new database session for performing operations.
+        + begin_transaction(): AsyncSession -- Starts a new transaction and returns the session.
+        + commit_transaction(session: AsyncSession): void -- Commits the given transaction session.
+        + rollback_transaction(session: AsyncSession): void -- Rolls back the given transaction
+            session.
+        + close_session(session: AsyncSession): void -- Closes the given database session to free
+            resources.
+        + execute_in_transaction(operation: callable): Result -- Convenience method to execute a
+            database operation within a transaction context, automatically handling
+            commit/rollback and session lifecycle.
+    }
+
+    class ScubaDexRepository {
+        -- description --
+        Database-backed implementation of ScubaDex materialized data management with reconciliation
+        capabilities. All methods have functionality described in interface with implementation
+        based around database operations.
+        -- attributes --
+        - db_client: DatabaseClient -- For direct database access to materialized data.
+        - media_repo: IMediaRepository -- For reconciliation with species tags.
+        -- methods --
+        + record_species_encounter(user_id: UUID, species_id: UUID): void
+        + remove_species_encounter(user_id: UUID, species_id: UUID): void
+        + clear_species_encounters(user_id: UUID, species_id: UUID): void
+        + get_encounter_count(user_id: UUID, species_id: UUID): int
+        + get_user_species_encounters(user_id: UUID): List[Tuple[UUID, int]]
+        + get_species_for_media(media_id: UUID): List[Tuple[UUID, UUID]]
+        + reconcile_user_dex(user_id: UUID): void
+    }
+
+    class MediaRepository {
+        -- description --
+        Database-backed implementation of media data management operations using database sessions.
+        All methods have functionality described in interface with implementation based around
+        database operations.
+        -- attributes --
+        - db_client: DatabaseClient -- For direct database access to media data.
+        -- methods --
+        + create_media(media: Media): UUID
+        + get_media(media_id: UUID): Optional[Media]
+        + get_media_by_user(user_id: UUID, media_type: Optional[str], limit: Optional[int],
+            offset: Optional[int]): List[Media]
+        + get_media_by_dive_log(dive_log_id: UUID, media_type: Optional[str]): List[Media]
+        + get_media_by_species_tag(user_id: UUID, species_id: UUID, media_type: Optional[str],
+            limit: Optional[int], offset: Optional[int]): List[Media] -- Retrieves media items for a
+            user filtered by species tag and optionally by media type.
+        + get_species_tags_for_media(media_id: UUID): List[SpeciesTag]
+        + update_media_status(media_id: UUID, status: str): void
+        + update_media_metadata(media_id: UUID, metadata: dict): void
+        + delete_media(media_id: UUID): void
+    }
+
+    class DiveLogRepository {
+        -- description --
+        Database-backed implementation of dive log data management operations using database
+        sessions. All methods have functionality described in interface with implementation based
+        around database operations.
+        -- attributes --
+        - db_client: DatabaseClient -- For direct database access to dive log data.
+        -- methods --
+        + create_dive_log(dive_log: DiveLog): UUID
+        + get_dive_log(dive_log_id: UUID): Optional[DiveLog]
+        + get_dive_logs_by_user(user_id: UUID, limit: Optional[int],
+            offset: Optional[int]): List[DiveLog]
+        + get_dive_logs_by_location(location: str, limit: Optional[int],
+            offset: Optional[int]): List[DiveLog]
+        + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
+            limit: Optional[int], offset: Optional[int]): List[DiveLog]
+        + update_dive_log(dive_log_id: UUID, updates: dict): void
+        + delete_dive_log(dive_log_id: UUID): void
+    }
+}
+
+' Relationships
+IScubaDexRepository <|.. ScubaDexRepository
+IMediaRepository <|.. MediaRepository
+IDiveLogRepository <|.. DiveLogRepository
+ScubaDexRepository --> DatabaseClient : uses
+ScubaDexRepository --> IMediaRepository : uses for species tags access during reconciliation
+MediaRepository --> DatabaseClient : uses
+DiveLogRepository --> DatabaseClient : uses
+
+@enduml

@@ -1,6 +1,7 @@
 @startuml SpeciesTagRemoved Event Consumers Sequence
 queue "Event Bus" as Events
 participant "Materialized Data Worker" as MaterializedDataWorker
+participant "ScubaDex Repository" as ScubaDexRepository
 participant "API Server" as API
 database "Database" as DB
 
@@ -8,8 +9,8 @@ database "Database" as DB
 par ScubaDex Update
     Events -> MaterializedDataWorker: consume SpeciesTagRemoved (user_id, species_id, media_id)
     activate MaterializedDataWorker
-    MaterializedDataWorker -> DB: DECREMENT times_encountered\nfor scubadex_entries\n(user_id, species_id)
-    MaterializedDataWorker -> DB: if times_encountered = 0,\ndelete scubadex_entries row
+    MaterializedDataWorker -> ScubaDexRepository: remove_species_encounter(user_id, species_id)
+    ScubaDexRepository -> DB: update materialized encounter count
     MaterializedDataWorker -> Events: publish ScubaDexUpdated\n(user_id, species_id)
     deactivate MaterializedDataWorker
 end par

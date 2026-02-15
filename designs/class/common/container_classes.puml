@@ -1,0 +1,189 @@
+@startuml Container Classes
+
+package "common.container.PlantUML file: container_classes" <<frame>> {
+    abstract class ConnectionManager {
+        -- description --
+        Base class for managing connections to external real-time message systems (e.g. Kafka) for
+        both receiving and sending messages. Provides a common interface for setting up connections,
+        sending messages, and managing connection lifecycle. Subclasses implement specific
+        connection types.
+        -- attributes --
+        - thread_manager: ThreadManager
+        -- methods --
+        + __init__(): void -- Base constructor that sets up thread manager.
+        {abstract} + setup(): void -- Main setup method to be implemented by subclasses.
+        {abstract} + setup_receive(): void -- Setup for receiving messages (e.g. Kafka consumers).
+        {abstract} + setup_send(): void -- Setup for sending messages (e.g. Kafka producer).
+        {abstract} + send(*args, **kwargs): void -- Method to send messages, implementation depends
+            on the type of connection.
+        {abstract} + send_async(*args, **kwargs): void -- Async version of send, calls send in a
+            separate thread. Note that async response may not always contain the expected response
+            due to nature of threading.
+        {abstract} + start_connections(): void -- Method to start any necessary connections or
+            threads.
+        {abstract} + shutdown(): void -- Method to gracefully shutdown connections and threads.
+    }
+
+    class KafkaConnectionManager {
+        -- description --
+        Manages Kafka consumer and producer connections based on provided routing configurations.
+        Handles message receiving, sending, and connection lifecycle.
+        -- attributes --
+        - kafka_routings: List[KafkaRouting] -- Configurations for Kafka topics and callbacks.
+        - consumers: List[KafkaConsumer] -- List of Kafka consumer instances for receiving
+            messages.
+        - producer: KafkaProducer -- Kafka producer instance for sending messages.
+        -- methods --
+        + __init__(kafka_routings: List[KafkaRouting]): void -- Constructor that takes in routing
+            configurations for setting up consumers and producer.
+        + setup(): void -- Main setup method.
+        + setup_receive(): void -- Sets up Kafka consumers based on kafka_routings.
+        + setup_send(): void -- Sets up Kafka producer.
+        + send(topic, message): void -- Sends message to specified Kafka topic.
+        + start_connections(): void -- Starts all Kafka consumers.
+        + shutdown(): void -- Gracefully shuts down consumers and producer.
+    }
+
+    class ThreadManager {
+        -- description --
+        Singleton class responsible for managing threads within a container, providing methods to
+        create.
+        -- attributes --
+        - threads: List[Thread] -- List of threads being managed.
+        - thread_lock: Lock -- Lock to synchronize access to threads list.
+        -- methods --
+        + create_thread(target, args=()): Thread -- Creates and starts a new thread for the given
+            target function and arguments and adds it to the threads list.
+        + join_all(): void -- Joins all threads to the main thread, blocking until they complete.
+        + check_heartbeats(): void -- Periodically checks that all threads are alive, raises
+            exception if any thread has stopped.
+    }
+
+    class Singleton {
+        -- description --
+        Base class for implementing singleton pattern. Ensures that only one instance of a class
+        exists.
+        -- attributes --
+        - _instance: Singleton -- Holds the single instance of the class.
+        - _initialized: bool -- Flag to indicate if the instance has been initialized.
+        -- methods --
+        + __new__(cls, *args, **kwargs): Singleton -- Overrides new method to control instance
+            creation.
+    }
+
+    class ContainerController {
+        -- description --
+        Base class for managing the lifecycle of a containerized service, including initialization,
+        starting, and shutting down the service. Provides hooks for custom initialization logic and
+        manages a thread manager for handling concurrent tasks within the container.
+        -- attributes --
+        - thread_manager: ThreadManager -- Manages threads for the container.
+        - receiver_connection_managers: List[ConnectionManager] -- List of connection managers for
+            receiving messages.
+        - sender_connection_manager: ConnectionManager -- Connection manager for sending messages,
+            if applicable.
+        -- methods --
+        + add_receiver_manager(manager: ConnectionManager): void -- Adds a connection manager to
+            the list of receiver managers.
+        + set_sender_manager(manager: ConnectionManager): void -- Sets the sender connection
+            manager.
+        + start(): void -- Starts the container by setting up and starting all receiver connection
+            managers.
+        + shutdown(): void -- Gracefully shuts down all receiver connection managers and joins
+            threads.
+        + _custom_init(): void -- Hook for custom initialization logic in subclasses, called during
+            start() after setting up connection managers. Can be used by subclasses to set up
+            additional resources or perform any necessary initialization before starting to consume
+            messages.
+    }
+
+    class EventBasedContainerController {
+        -- description --
+        Generic base class for event-driven services that provides event publishing capabilities
+        through dependency injection. Subclasses specify which event publisher implementation to use.
+        -- attributes --
+        - config: dict -- Configuration dictionary for setting up the container and connection
+            manager.
+        - event_publisher: IEventPublisher -- Event publisher for sending events, injected by
+            subclasses.
+        -- methods --
+        + __init__(config: dict, event_publisher: IEventPublisher): void -- Constructor that
+            takes an event publisher implementation.
+        + _custom_init(): void -- Custom initialization logic for event-based containers, called
+            during start() after setting up connection managers.
+    }
+
+    class KafkaEventBasedContainerController {
+        -- description --
+        Subclass of EventBasedContainerController designed for event-driven services that consume
+        and produce events using Kafka. It integrates with a KafkaConnectionManager and provides a
+        Kafka-based event publishing interface.
+        -- attributes --
+        -- methods --
+        + __init__(config: dict): void -- Constructor that initializes the KafkaConnectionManager
+            based on provided config and saves it as an event receiver manager + and producer
+            (inside of KafkaEventPublisher).
+        + _custom_init(): void -- Custom initialization logic specific to Kafka event-based
+            containers, called during start() after setting up connection managers.
+    }
+
+    class ContainerRouting {
+        -- description --
+        Represents a routing configuration for a containerized service. For simplicity, uses a
+        single class with nullable attributes for different message systems used throughout
+        reef-connect (e.g., Kafka). Only relevant attributes are populated; others remain null
+        depending on the routing type.
+        -- attributes --
+        - container_name: str -- Name of the container this routing is for (e.g. "MediaWorker").
+        - kafka_routings: List[KafkaRouting] -- List of Kafka routing configurations for this
+            container, if applicable.
+    }
+
+    class KafkaRouting {
+        -- description --
+        Represents a routing configuration for Kafka, including the topic to subscribe to and the
+        -- attributes --
+        - server_address: str -- Address of the Kafka server (e.g. "localhost:9092").
+        - group_id: str -- Consumer group ID for Kafka consumers using this routing.
+        - enable_auto_commit: bool -- Whether to enable auto-commit for Kafka consumers using this
+            routing.
+        - min_polling_delay_seconds: int -- Minimum delay in seconds between polling attempts for
+            Kafka consumers using this routing, to prevent tight polling loops when no messages are
+            available.
+        - receive_topics: List[str] -- List of Kafka topics to subscribe to for receiving messages.
+        - callback: callable -- Callback function to be called when a message is received on the
+            specified topics, should accept parameters (message, topic) where message is the
+            received Kafka message and topic is the topic it was received on.
+    }
+
+    interface IEventPublisher {
+        -- description --
+        Abstracts event publishing to decouple business logic from communication infrastructure.
+        -- methods --
+        + publish(event: Event): void -- Publishes an event to the appropriate channel.
+    }
+
+    class KafkaEventPublisher {
+        -- description --
+        Kafka-specific implementation of IEventPublisher that uses KafkaConnectionManager for
+        event publishing. Provides optimized Kafka-specific event publishing behavior.
+        -- attributes --
+        - kafka_manager: KafkaConnectionManager
+        -- methods --
+        + publish(event: Event): void -- Publishes an event by automatically determining the topic
+            from event.ROUTING_KEY and converting the event to dict using event.to_dict().
+    }
+}
+
+' Relationships
+ConnectionManager <|-- KafkaConnectionManager : inherits
+Singleton <|-- ContainerController : inherits
+ContainerController <|-- EventBasedContainerController : inherits
+EventBasedContainerController <|-- KafkaEventBasedContainerController : inherits
+ContainerController --> ThreadManager : uses
+EventBasedContainerController --> KafkaConnectionManager : uses
+EventBasedContainerController --> IEventPublisher : uses
+KafkaEventBasedContainerController --> KafkaEventPublisher : creates
+ContainerRouting *-- KafkaRouting : contains
+
+@enduml
