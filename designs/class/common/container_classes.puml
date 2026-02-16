@@ -29,12 +29,12 @@ package "common.container.PlantUML file: container_classes" <<frame>> {
         Manages Kafka consumer and producer connections based on provided routing configurations.
         Handles message receiving, sending, and connection lifecycle.
         -- attributes --
-        - kafka_routings: List[KafkaRouting] -- Configurations for Kafka topics and callbacks.
-        - consumers: List[KafkaConsumer] -- List of Kafka consumer instances for receiving
+        - kafka_routings: list[KafkaRouting] -- Configurations for Kafka topics and callbacks.
+        - consumers: list[KafkaConsumer] -- List of Kafka consumer instances for receiving
             messages.
         - producer: KafkaProducer -- Kafka producer instance for sending messages.
         -- methods --
-        + __init__(kafka_routings: List[KafkaRouting]): void -- Constructor that takes in routing
+        + __init__(kafka_routings: list[KafkaRouting]): void -- Constructor that takes in routing
             configurations for setting up consumers and producer.
         + setup(): void -- Main setup method.
         + setup_receive(): void -- Sets up Kafka consumers based on kafka_routings.
@@ -49,7 +49,7 @@ package "common.container.PlantUML file: container_classes" <<frame>> {
         Singleton class responsible for managing threads within a container, providing methods to
         create.
         -- attributes --
-        - threads: List[Thread] -- List of threads being managed.
+        - threads: list[Thread] -- List of threads being managed.
         - thread_lock: Lock -- Lock to synchronize access to threads list.
         -- methods --
         + create_thread(target, args=()): Thread -- Creates and starts a new thread for the given
@@ -78,7 +78,7 @@ package "common.container.PlantUML file: container_classes" <<frame>> {
         manages a thread manager for handling concurrent tasks within the container.
         -- attributes --
         - thread_manager: ThreadManager -- Manages threads for the container.
-        - receiver_connection_managers: List[ConnectionManager] -- List of connection managers for
+        - receiver_connection_managers: list[ConnectionManager] -- List of connection managers for
             receiving messages.
         - sender_connection_manager: ConnectionManager -- Connection manager for sending messages,
             if applicable.
@@ -135,7 +135,7 @@ package "common.container.PlantUML file: container_classes" <<frame>> {
         depending on the routing type.
         -- attributes --
         - container_name: str -- Name of the container this routing is for (e.g. "MediaWorker").
-        - kafka_routings: List[KafkaRouting] -- List of Kafka routing configurations for this
+        - kafka_routings: list[KafkaRouting] -- List of Kafka routing configurations for this
             container, if applicable.
     }
 
@@ -150,7 +150,7 @@ package "common.container.PlantUML file: container_classes" <<frame>> {
         - min_polling_delay_seconds: int -- Minimum delay in seconds between polling attempts for
             Kafka consumers using this routing, to prevent tight polling loops when no messages are
             available.
-        - receive_topics: List[str] -- List of Kafka topics to subscribe to for receiving messages.
+        - receive_topics: list[str] -- List of Kafka topics to subscribe to for receiving messages.
         - callback: callable -- Callback function to be called when a message is received on the
             specified topics, should accept parameters (message, topic) where message is the
             received Kafka message and topic is the topic it was received on.

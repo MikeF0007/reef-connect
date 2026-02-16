@@ -3,6 +3,56 @@
 package "common.db.PlantUML file: db_classes" <<frame>> {
     ' ---- Generic domain interfaces ---- '
 
+    interface IDiveLogRepository {
+        -- description --
+        Defines the contract for dive log data management operations.
+        -- methods --
+        + create_dive_log(dive_log: DiveLog): UUID -- Creates a new dive log entry and returns its
+            ID.
+        + get_dive_logs(dive_log_ids: list[UUID]): list[DiveLog] -- Retrieves dive logs by their IDs
+            in a single query for efficiency. Returns only the dive logs that exist.
+        + get_dive_logs_by_user(user_id: UUID, limit: Optional[int],
+            offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a user,
+            ordered by dive date descending, with optional pagination.
+        + get_dive_logs_by_location(location: str, limit: Optional[int],
+            offset: Optional[int]): list[DiveLog] -- Retrieves dive logs by location,
+            with optional pagination.
+        + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
+            limit: Optional[int], offset: Optional[int]): list[DiveLog] -- Retrieves
+            dive logs for a user within a specific date range, ordered by dive date descending.
+        + update_dive_log(dive_log_id: UUID, updates: dict): void -- Updates a dive log by
+            completely replacing the existing fields with the provided updates dict. To clear a
+            field, omit it from the updates dict.
+        + delete_dive_log(dive_log_id: UUID): void -- Deletes a dive log by its ID, along with any
+            associated media items (cascading delete).
+    }
+
+    interface IMediaRepository {
+        -- description --
+        Defines the contract for media data management operations.
+        -- methods --
+        + create_media(media: Media): UUID -- Creates a new media entry in the database with the
+            initial status of 'PENDING' and returns the its ID.
+        + get_media(media_ids: list[UUID]): list[Media] -- Retrieves media items by their IDs in a
+            single query for efficiency. Returns only the media that exist.
+        + get_media_by_user(user_id: UUID, media_type: Optional[str], limit: Optional[int],
+            offset: Optional[int]): list[Media] -- Retrieves media items for a user, optionally
+            filtered by media type and paginated.
+        + get_media_by_dive_log(dive_log_id: UUID, media_type: Optional[str]): list[Media] --
+            Retrieves media items associated with a specific dive log, optionally filtered by media
+            type.
+        + get_media_by_species_tag(user_id: UUID, species_id: UUID, media_type: Optional[str],
+            limit: Optional[int], offset: Optional[int]): list[Media] -- Retrieves media items for
+            a user filtered by species tag and optionally by media type.
+        + update_media_status(media_id: UUID, status: str): void -- Updates the processing status of
+            a media item (e.g., 'PENDING'/'UPLOADING').
+        + update_media_metadata(media_id: UUID, metadata: dict): void -- Updates the metadata of a
+            media item by completely replacing the existing metadata dict with the provided one.
+            To clear a field, simply omit it from the new metadata dict.
+        + delete_media(media_id: UUID): void -- Deletes a media item by its ID, along with any
+            associated species tags (cascading delete).
+    }
+
     interface IScubaDexRepository {
         -- description --
         Defines the contract for ScubaDex materialized data management. Maintains encounter
@@ -16,9 +66,9 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             with a species by deleting the materialized entry.
         + get_encounter_count(user_id: UUID, species_id: UUID): int -- Returns the current
             materialized encounter count.
-        + get_user_species_encounters(user_id: UUID): List[Tuple[UUID, int]] -- Returns all species
+        + get_user_species_encounters(user_id: UUID): list[tuple[UUID, int]] -- Returns all species
             encountered by a user with their current counts.
-        + get_species_for_media(media_id: UUID): List[Tuple[UUID, UUID]] -- Gets all species
+        + get_species_for_media(media_id: UUID): list[tuple[UUID, UUID]] -- Gets all species
             associated with a media item.
         + reconcile_user_dex(user_id: UUID): void -- Rebuilds the user's ScubaDex by recounting all
             their species tags from the source of truth. This ensures complete consistency by
@@ -28,54 +78,90 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             (scheduled, not tied to event) but can also be triggered manually if needed.
     }
 
-    interface IMediaRepository {
+    interface ISpeciesRepository {
         -- description --
-        Defines the contract for media data management operations.
+        Defines the contract for species catalog read/search operations.
         -- methods --
-        + create_media(media: Media): UUID -- Creates a new media entry in the database with the
-            initial status of 'PENDING' and returns the its ID.
-        + get_media(media_id: UUID): Optional[Media] -- Retrieves a media item by its ID, returning
-            None if not found.
-        + get_media_by_user(user_id: UUID, media_type: Optional[str], limit: Optional[int],
-            offset: Optional[int]): List[Media] -- Retrieves media items for a user, optionally
-            filtered by media type and paginated.
-        + get_media_by_dive_log(dive_log_id: UUID, media_type: Optional[str]): List[Media] --
-            Retrieves media items associated with a specific dive log, optionally filtered by media
-            type.
-        + get_media_by_species_tag(user_id: UUID, species_id: UUID, media_type: Optional[str],
-            limit: Optional[int], offset: Optional[int]): List[Media] -- Retrieves media items for
-            a user filtered by species tag and optionally by media type.
-        + update_media_status(media_id: UUID, status: str): void -- Updates the processing status of
-            a media item (e.g., 'PENDING'/'UPLOADING').
-        + update_media_metadata(media_id: UUID, metadata: dict): void -- Updates the metadata of a
-            media item by completely replacing the existing metadata dict with the provided one.
-            To clear a field, simply omit it from the new metadata dict.
-        + delete_media(media_id: UUID): void -- Deletes a media item by its ID, along with any
-            associated species tags (cascading delete).
+        + get_species(species_ids: list[UUID]): list[Species] -- Retrieves multiple species by their
+            IDs in a single query for efficiency. Returns only the species that exist.
+        + get_all_species(limit: Optional[int], offset: Optional[int]): list[Species] -- Retrieves
+            all species in the catalog with optional pagination, ordered by common name.
+        + get_species_by_category(category: str, limit: Optional[int],
+            offset: Optional[int]): list[Species] -- Retrieves species filtered by taxonomy category
+            (e.g., 'fish', 'coral', 'mammal'), with optional pagination. Category is matched against
+            taxonomy JSONB field.
+        + get_species_by_ml_label(ml_label: str): Optional[Species] -- Retrieves a species by its
+            ML label identifier, returning None if not found. Used for ML tagging integration.
+        + get_species_by_slug(slug: str): Optional[Species] -- Retrieves a species by its URL-
+            friendly slug, returning None if not found.
+        + get_species_count(): int -- Returns the total number of species in the catalog.
+        + search_species(query: str, limit: Optional[int], offset: Optional[int]): list[Species] --
+            Searches for species by common name, scientific name, or ML label (partial match),
+            returning a paginated list of matching species ordered by relevance.
     }
 
-    interface IDiveLogRepository {
+    interface ISpeciesTagRepository {
         -- description --
-        Defines the contract for dive log data management operations.
+        Defines the contract for species tag data management operations. Species tags represent
+        the many-to-many relationship between media and species, tracking both ML-generated and
+        user-created tags.
         -- methods --
-        + create_dive_log(dive_log: DiveLog): UUID -- Creates a new dive log entry and returns its
-            ID.
-        + get_dive_log(dive_log_id: UUID): Optional[DiveLog] -- Retrieves a dive log by its ID,
+        + create_tag(media_id: UUID, species_id: UUID, source: str,
+            model_confidence: Optional[float]): SpeciesTag -- Creates a new species tag on a media
+            item. Source should be 'ml' or 'user'. Model confidence (0-1 range) is required for
+            ML tags. Returns the created tag or raises an error if the tag already exists (enforced
+            by UNIQUE constraint on media_id, species_id).
+        + check_tag_exists(media_id: UUID, species_id: UUID): bool -- Checks if a tag already exists
+            for the given media and species combination.
+        + get_tags(list[tuple[media_id: UUID, species_id: UUID]]): list[SpeciesTag] -- Retrieves
+            tags by their composite key (media_id, species_id) in a single query for efficiency.
+            Returns only the tags that exist.
+        + get_tags_for_media(media_id: UUID): list[SpeciesTag] -- Retrieves all species tags
+            associated with a media item, ordered by tagged_at descending.
+        + get_user_tags_for_species(user_id: UUID, species_id: UUID): list[SpeciesTag] -- Retrieves
+            all tags for a specific species created by a user (via their media items).
+        + delete_tag(media_id: UUID, species_id: UUID): bool -- Deletes a species tag by its
+            composite key, returning True if deleted or False if not found.
+        + delete_tags_for_media(media_id: UUID): int -- Deletes all species tags for a media item,
+            returning the count of deleted tags. Used when media is deleted.
+    }
+
+    interface IUserRepository {
+        -- description --
+        Defines the contract for user profile, settings, and privacy data management operations.
+        -- methods --
+        + get_users(user_ids: list[UUID]): list[User] -- Retrieves multiple users by their IDs in a
+            single query for efficiency. Returns only the users that exist.
+        + get_user_by_email(email: str): Optional[User] -- Retrieves a user by their email address,
             returning None if not found.
-        + get_dive_logs_by_user(user_id: UUID, limit: Optional[int],
-            offset: Optional[int]): List[DiveLog] -- Retrieves dive logs for a user,
-            ordered by dive date descending, with optional pagination.
-        + get_dive_logs_by_location(location: str, limit: Optional[int],
-            offset: Optional[int]): List[DiveLog] -- Retrieves dive logs by location,
-            with optional pagination.
-        + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
-            limit: Optional[int], offset: Optional[int]): List[DiveLog] -- Retrieves
-            dive logs for a user within a specific date range, ordered by dive date descending.
-        + update_dive_log(dive_log_id: UUID, updates: dict): void -- Updates a dive log by
-            completely replacing the existing fields with the provided updates dict. To clear a
-            field, omit it from the updates dict.
-        + delete_dive_log(dive_log_id: UUID): void -- Deletes a dive log by its ID, along with any
-            associated media items (cascading delete).
+        + get_user_by_username(username: str): Optional[User] -- Retrieves a user by their username,
+            returning None if not found.
+        + get_user_profile(user_id: UUID): Optional[UserProfile] -- Retrieves a user's profile by
+            their user ID, returning None if not found.
+        + get_user_with_profile(user_id: UUID): Optional[tuple[User, UserProfile, PrivacySettings]]
+            -- Retrieves a user along with their profile and privacy settings in a single
+            query for efficiency, returning None if user not found.
+        + get_user_privacy_settings(user_id: UUID): Optional[PrivacySettings] -- Retrieves a user's
+            privacy settings, returning None if not found.
+        + get_user_settings(user_id: UUID): Optional[UserSettings] -- Retrieves a user's
+            application settings, returning None if not found.
+        + update_user_profile(user_id: UUID, updates: dict): void -- Updates a user's profile by
+            replacing the existing fields with the provided updates dict. To clear a field, simply
+            omit it from the updates dict. Supported fields include username, bio, avatar_url,
+            avatar_storage_key, first_name, last_name, location, website_url, birth_date, and
+            certifications.
+        + update_user_privacy_settings(user_id: UUID, settings: dict): void -- Updates a user's
+            privacy settings by replacing the existing fields with the provided settings dict. To
+            clear a field (reset to default 'public' visibility), simply omit it from the settings
+            dict. Supported fields include profile_visibility, dive_logs_visibility,
+            media_visibility, and stats_visibility.
+        + update_user_settings(user_id: UUID, settings: dict): void -- Updates a user's application
+            settings by replacing the existing fields with the provided settings dict. To clear a
+            field (reset to default), simply omit it from the settings dict. Supported fields
+            include preferred_units, timezone, and language.
+        + search_users(query: str, limit: Optional[int], offset: Optional[int]): list[User] --
+            Searches for users by username or email (partial match), returning a paginated list of
+            matching users.
     }
 
     ' ---- Database-based implementation classes ---- '
@@ -96,6 +182,48 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             commit/rollback and session lifecycle.
     }
 
+    class DiveLogRepository {
+        -- description --
+        Database-backed implementation of dive log data management operations using database
+        sessions. All methods have functionality described in interface with implementation based
+        around database operations.
+        -- attributes --
+        - db_client: DatabaseClient -- For direct database access to dive log data.
+        -- methods --
+        + create_dive_log(dive_log: DiveLog): UUID
+        + get_dive_logs(dive_log_ids: list[UUID]): list[DiveLog]
+        + get_dive_logs_by_user(user_id: UUID, limit: Optional[int],
+            offset: Optional[int]): list[DiveLog]
+        + get_dive_logs_by_location(location: str, limit: Optional[int],
+            offset: Optional[int]): list[DiveLog]
+        + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
+            limit: Optional[int], offset: Optional[int]): list[DiveLog]
+        + update_dive_log(dive_log_id: UUID, updates: dict): void
+        + delete_dive_log(dive_log_id: UUID): void
+    }
+
+    class MediaRepository {
+        -- description --
+        Database-backed implementation of media data management operations using database sessions.
+        All methods have functionality described in interface with implementation based around
+        database operations.
+        -- attributes --
+        - db_client: DatabaseClient -- For direct database access to media data.
+        -- methods --
+        + create_media(media: Media): UUID
+        + get_media(media_ids: list[UUID]): list[Media]
+        + get_media_by_user(user_id: UUID, media_type: Optional[str], limit: Optional[int],
+            offset: Optional[int]): list[Media]
+        + get_media_by_dive_log(dive_log_id: UUID, media_type: Optional[str]): list[Media]
+        + get_media_by_species_tag(user_id: UUID, species_id: UUID, media_type: Optional[str],
+            limit: Optional[int], offset: Optional[int]): list[Media] -- Retrieves media items for a
+            user filtered by species tag and optionally by media type.
+        + get_species_tags_for_media(media_id: UUID): list[SpeciesTag]
+        + update_media_status(media_id: UUID, status: str): void
+        + update_media_metadata(media_id: UUID, metadata: dict): void
+        + delete_media(media_id: UUID): void
+    }
+
     class ScubaDexRepository {
         -- description --
         Database-backed implementation of ScubaDex materialized data management with reconciliation
@@ -109,61 +237,87 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         + remove_species_encounter(user_id: UUID, species_id: UUID): void
         + clear_species_encounters(user_id: UUID, species_id: UUID): void
         + get_encounter_count(user_id: UUID, species_id: UUID): int
-        + get_user_species_encounters(user_id: UUID): List[Tuple[UUID, int]]
-        + get_species_for_media(media_id: UUID): List[Tuple[UUID, UUID]]
+        + get_user_species_encounters(user_id: UUID): list[tuple[UUID, int]]
+        + get_species_for_media(media_id: UUID): list[tuple[UUID, UUID]]
         + reconcile_user_dex(user_id: UUID): void
     }
 
-    class MediaRepository {
+    class SpeciesRepository {
         -- description --
-        Database-backed implementation of media data management operations using database sessions.
-        All methods have functionality described in interface with implementation based around
-        database operations.
+        Database-backed implementation of species catalog data management and search operations
+        using database sessions. All methods have functionality described in interface with
+        implementation based around database operations. Handles the species table and provides
+        optimized search capabilities including full-text search on common/scientific names.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to media data.
+        - db_client: DatabaseClient -- For direct database access to species catalog data.
         -- methods --
-        + create_media(media: Media): UUID
-        + get_media(media_id: UUID): Optional[Media]
-        + get_media_by_user(user_id: UUID, media_type: Optional[str], limit: Optional[int],
-            offset: Optional[int]): List[Media]
-        + get_media_by_dive_log(dive_log_id: UUID, media_type: Optional[str]): List[Media]
-        + get_media_by_species_tag(user_id: UUID, species_id: UUID, media_type: Optional[str],
-            limit: Optional[int], offset: Optional[int]): List[Media] -- Retrieves media items for a
-            user filtered by species tag and optionally by media type.
-        + get_species_tags_for_media(media_id: UUID): List[SpeciesTag]
-        + update_media_status(media_id: UUID, status: str): void
-        + update_media_metadata(media_id: UUID, metadata: dict): void
-        + delete_media(media_id: UUID): void
+        + get_species(species_ids: list[UUID]): list[Species]
+        + get_all_species(limit: Optional[int], offset: Optional[int]): list[Species]
+        + get_species_by_category(category: str, limit: Optional[int],
+            offset: Optional[int]): list[Species]
+        + get_species_by_ml_label(ml_label: str): Optional[Species]
+        + get_species_by_slug(slug: str): Optional[Species]
+        + get_species_count(): int
+        + search_species(query: str, limit: Optional[int], offset: Optional[int]): list[Species]
     }
 
-    class DiveLogRepository {
+    class SpeciesTagRepository {
         -- description --
-        Database-backed implementation of dive log data management operations using database
+        Database-backed implementation of species tag data management operations using database
         sessions. All methods have functionality described in interface with implementation based
-        around database operations.
+        around database operations. Handles the media_species_tags junction table for the
+        many-to-many relationship between media and species.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to dive log data.
+        - db_client: DatabaseClient -- For direct database access to species tag data.
         -- methods --
-        + create_dive_log(dive_log: DiveLog): UUID
-        + get_dive_log(dive_log_id: UUID): Optional[DiveLog]
-        + get_dive_logs_by_user(user_id: UUID, limit: Optional[int],
-            offset: Optional[int]): List[DiveLog]
-        + get_dive_logs_by_location(location: str, limit: Optional[int],
-            offset: Optional[int]): List[DiveLog]
-        + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
-            limit: Optional[int], offset: Optional[int]): List[DiveLog]
-        + update_dive_log(dive_log_id: UUID, updates: dict): void
-        + delete_dive_log(dive_log_id: UUID): void
+        + create_tag(media_id: UUID, species_id: UUID, source: str,
+            model_confidence: Optional[float]): SpeciesTag
+        + check_tag_exists(media_id: UUID, species_id: UUID): bool
+        + get_tags(list[tuple[media_id: UUID, species_id: UUID]]): list[SpeciesTag]
+        + get_tags_for_media(media_id: UUID): list[SpeciesTag]
+        + get_user_tags_for_species(user_id: UUID, species_id: UUID): list[SpeciesTag]
+        + delete_tag(media_id: UUID, species_id: UUID): bool
+        + delete_tags_for_media(media_id: UUID): int
+    }
+
+    class UserRepository {
+        -- description --
+        Database-backed implementation of user, profile, settings, and privacy data management
+        operations using database sessions. All methods have functionality described in interface
+        with implementation based around database operations. Handles the users, user_profiles,
+        privacy_settings, and user_settings tables.
+        -- attributes --
+        - db_client: DatabaseClient -- For direct database access to user-related data.
+        -- methods --
+        + get_users(user_ids: list[UUID]): list[User]
+        + get_user_by_email(email: str): Optional[User]
+        + get_user_by_username(username: str): Optional[User]
+        + get_user_profile(user_id: UUID): Optional[UserProfile]
+        + get_user_with_profile(user_id: UUID): Optional[tuple[User, UserProfile, PrivacySettings]]
+        + get_user_privacy_settings(user_id: UUID): Optional[PrivacySettings]
+        + get_user_settings(user_id: UUID): Optional[UserSettings]
+        + update_user_profile(user_id: UUID, updates: dict): void
+        + update_user_privacy_settings(user_id: UUID, settings: dict): void
+        + update_user_settings(user_id: UUID, settings: dict): void
+        + search_users(query: str, limit: Optional[int], offset: Optional[int]): list[User]
     }
 }
 
 ' Relationships
-IScubaDexRepository <|.. ScubaDexRepository
-IMediaRepository <|.. MediaRepository
 IDiveLogRepository <|.. DiveLogRepository
-ScubaDexRepository --> DatabaseClient : uses
-ScubaDexRepository --> IMediaRepository : uses for species tags access during reconciliation
-MediaRepository --> DatabaseClient : uses
+IMediaRepository <|.. MediaRepository
+IScubaDexRepository <|.. ScubaDexRepository
+ISpeciesRepository <|.. SpeciesRepository
+ISpeciesTagRepository <|.. SpeciesTagRepository
+IUserRepository <|.. UserRepository
+
 DiveLogRepository --> DatabaseClient : uses
+MediaRepository --> DatabaseClient : uses
+ScubaDexRepository --> DatabaseClient : uses
+SpeciesRepository --> DatabaseClient : uses
+SpeciesTagRepository --> DatabaseClient : uses
+UserRepository --> DatabaseClient : uses
+
+ScubaDexRepository --> IMediaRepository : uses for species tags access during reconciliation
 
 @enduml
