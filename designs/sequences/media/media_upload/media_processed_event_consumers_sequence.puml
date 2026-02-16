@@ -1,10 +1,8 @@
 @startuml MediaProcessed Event Consumers Sequence
 queue "Event Bus" as Events
 participant "ML Species Tagger" as MLTagger
-participant "Materialized Data Worker" as MaterializedDataWorker
 participant "API Server" as API
 database "Database" as DB
-participant Frontend
 
 == Parallel consumers of MediaProcessed event ==
 par MLTagger (species tagging)

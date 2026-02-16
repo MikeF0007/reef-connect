@@ -1,8 +1,6 @@
 @startuml MediaUploaded Event Consumers Sequence
 queue "Event Bus" as Events
 participant "Media Worker" as MediaWorker
-participant "ML Species Tagger" as MLTagger
-participant "Materialized Data Worker" as MaterializedDataWorker
 database "Database" as DB
 
 == Parallel consumers of MediaUploaded event ==
