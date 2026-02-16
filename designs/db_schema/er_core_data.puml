@@ -57,7 +57,6 @@ entity "dive_logs" as dive_logs {
   log_visibility : text (public | private | unlisted)
   --
   ' Meta
-metadata : jsonb
   created_at : timestamptz
   updated_at : timestamptz
 }
@@ -82,13 +81,13 @@ entity "media" as media {
   taken_at : timestamptz
   exif : jsonb
   processed_versions : jsonb
+  description : text
   --
   ' Visibility
   media_visibility : text (public | private | unlisted)
   --
   ' Meta
   error_details : text
-  metadata : jsonb
   created_at : timestamptz
   updated_at : timestamptz
 }
@@ -108,7 +107,6 @@ entity "species" as species {
   image_urls : jsonb
   --
   ' Meta
-  metadata : jsonb
   created_at : timestamptz
   updated_at : timestamptz
 }

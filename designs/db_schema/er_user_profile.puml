@@ -37,7 +37,6 @@ entity "user_profiles" as user_profiles {
   location : text
   website_url : text
   birth_date : date
-  certifications : jsonb
   *created_at : timestamptz
   *updated_at : timestamptz
 }

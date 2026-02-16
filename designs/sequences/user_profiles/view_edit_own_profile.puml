@@ -11,16 +11,16 @@ activate API
 API -> API: validate JWT
 API -> DB: query user profile (user_id from JWT)
 API <-- DB: user profile data
-Frontend <-- API: 200 OK (profile data: username, bio, certifications, privacy_settings, etc.)
+Frontend <-- API: 200 OK (profile data: username, bio, privacy_settings, etc.)
 deactivate API
 User <-- Frontend: display editable profile form
 
 == User Edits Profile ==
-User -> Frontend: updates profile fields (bio, certifications, privacy settings)
+User -> Frontend: updates profile fields (bio, privacy settings)
 Frontend -> API: PUT /profile (with JWT, updated fields)
 activate API
 API -> API: validate JWT
-API -> API: validate input (bio length, certifications format, privacy settings values)
+API -> API: validate input (bio length, privacy settings values)
 alt validation fails
     API --> Frontend: 400 Bad Request (error details)
     deactivate API

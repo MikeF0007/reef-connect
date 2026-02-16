@@ -11,18 +11,22 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             ID.
         + get_dive_logs(dive_log_ids: list[UUID]): list[DiveLog] -- Retrieves dive logs by their IDs
             in a single query for efficiency. Returns only the dive logs that exist.
-        + get_dive_logs_by_user(user_id: UUID, limit: Optional[int],
-            offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a user,
-            ordered by dive date descending, with optional pagination.
-        + get_dive_logs_by_location(location: str, limit: Optional[int],
-            offset: Optional[int]): list[DiveLog] -- Retrieves dive logs by location,
-            with optional pagination.
+        + get_dive_logs_by_user(user_id: UUID, sort_by: Optional[str], order: Optional[str],
+            limit: Optional[int], offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a
+            user with optional sorting (date, maxDepth, duration, location, experienceRating) and
+            ordering (asc, desc), with optional pagination. Defaults to sort by date descending.
+        + get_dive_logs_by_location(location: str, sort_by: Optional[str], order: Optional[str],
+            limit: Optional[int], offset: Optional[int]): list[DiveLog] -- Retrieves dive logs by
+            location with optional sorting (date, maxDepth, duration, experienceRating) and ordering
+            (asc, desc), with optional pagination. Defaults to sort by date descending.
         + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
-            limit: Optional[int], offset: Optional[int]): list[DiveLog] -- Retrieves
-            dive logs for a user within a specific date range, ordered by dive date descending.
-        + update_dive_log(dive_log_id: UUID, updates: dict): void -- Updates a dive log by
-            completely replacing the existing fields with the provided updates dict. To clear a
-            field, omit it from the updates dict.
+            sort_by: Optional[str], order: Optional[str], limit: Optional[int],
+            offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a user within a specific
+            date range with optional sorting (date, maxDepth, duration, location, experienceRating)
+            and ordering (asc, desc), with optional pagination. Defaults to sort by date descending.
+        + update_dive_log(dive_log_id: UUID, updates: dict): void -- Updates specific fields of a
+            dive log. Only the fields provided in the updates dict will be modified. To clear a
+            field, set its value to null in the updates dict.
         + delete_dive_log(dive_log_id: UUID): void -- Deletes a dive log by its ID, along with any
             associated media items (cascading delete).
     }
@@ -46,9 +50,9 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             a user filtered by species tag and optionally by media type.
         + update_media_status(media_id: UUID, status: str): void -- Updates the processing status of
             a media item (e.g., 'PENDING'/'UPLOADING').
-        + update_media_metadata(media_id: UUID, metadata: dict): void -- Updates the metadata of a
-            media item by completely replacing the existing metadata dict with the provided one.
-            To clear a field, simply omit it from the new metadata dict.
+        + update_media_details(media_id: UUID, details: dict): void -- Updates specific fields of
+            a media item. Only the fields provided in the details dict will be modified. To clear a
+            field, set its value to null in the details dict.
         + delete_media(media_id: UUID): void -- Deletes a media item by its ID, along with any
             associated species tags (cascading delete).
     }
@@ -145,23 +149,38 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             privacy settings, returning None if not found.
         + get_user_settings(user_id: UUID): Optional[UserSettings] -- Retrieves a user's
             application settings, returning None if not found.
-        + update_user_profile(user_id: UUID, updates: dict): void -- Updates a user's profile by
-            replacing the existing fields with the provided updates dict. To clear a field, simply
-            omit it from the updates dict. Supported fields include username, bio, avatar_url,
-            avatar_storage_key, first_name, last_name, location, website_url, birth_date, and
-            certifications.
-        + update_user_privacy_settings(user_id: UUID, settings: dict): void -- Updates a user's
-            privacy settings by replacing the existing fields with the provided settings dict. To
-            clear a field (reset to default 'public' visibility), simply omit it from the settings
-            dict. Supported fields include profile_visibility, dive_logs_visibility,
-            media_visibility, and stats_visibility.
-        + update_user_settings(user_id: UUID, settings: dict): void -- Updates a user's application
-            settings by replacing the existing fields with the provided settings dict. To clear a
-            field (reset to default), simply omit it from the settings dict. Supported fields
-            include preferred_units, timezone, and language.
+        + update_user_profile(user_id: UUID, updates: dict): void -- Updates specific fields of a
+            user's profile. Only the fields provided in the updates dict will be modified. To clear
+            a field, set its value to null in the updates dict. Supported fields include username,
+            bio, avatar_url, avatar_storage_key, first_name, last_name, location, website_url, and
+            birth_date.
+        + update_user_privacy_settings(user_id: UUID, settings: dict): void -- Updates specific
+            privacy settings for a user. Only the fields provided in the settings dict will be
+            modified. To clear a setting (reset to default 'public' visibility), set its value to
+            null in the settings dict. Supported fields include profile_visibility,
+            dive_logs_visibility, media_visibility, and stats_visibility.
+        + update_user_settings(user_id: UUID, settings: dict): void -- Updates specific application
+            settings for a user. Only the fields provided in the settings dict will be modified.
+            To clear a setting (reset to default), set its value to null in the settings dict.
+            Supported fields include preferred_units, timezone, and language.
         + search_users(query: str, limit: Optional[int], offset: Optional[int]): list[User] --
             Searches for users by username or email (partial match), returning a paginated list of
             matching users.
+    }
+
+    interface ICertificationRepository {
+        -- description --
+        Defines the contract for user certification data management operations.
+        -- methods --
+        + get_user_certifications(user_id: UUID): list[UserCertification] -- Retrieves all
+            certifications for a user, ordered by issued_date descending.
+        + add_user_certification(user_id: UUID, certification: UserCertification): UUID -- Adds a new
+            certification for a user and returns the certification ID.
+        + update_user_certification(certification_id: UUID, updates: dict): void -- Updates specific
+            fields of a user's certification. Only the fields provided in the updates dict will be
+            modified. To clear a field, set its value to null in the updates dict.
+        + delete_user_certification(certification_id: UUID): bool -- Deletes a user's certification
+            by ID, returning True if deleted or False if not found.
     }
 
     ' ---- Database-based implementation classes ---- '
@@ -192,12 +211,13 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         -- methods --
         + create_dive_log(dive_log: DiveLog): UUID
         + get_dive_logs(dive_log_ids: list[UUID]): list[DiveLog]
-        + get_dive_logs_by_user(user_id: UUID, limit: Optional[int],
-            offset: Optional[int]): list[DiveLog]
+        + get_dive_logs_by_user(user_id: UUID, sort_by: Optional[str], order: Optional[str],
+            limit: Optional[int], limit: Optional[int], offset: Optional[int]): list[DiveLog]
         + get_dive_logs_by_location(location: str, limit: Optional[int],
             offset: Optional[int]): list[DiveLog]
         + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
-            limit: Optional[int], offset: Optional[int]): list[DiveLog]
+            sort_by: Optional[str], order: Optional[str], limit: Optional[int],
+            offset: Optional[int]): list[DiveLog]
         + update_dive_log(dive_log_id: UUID, updates: dict): void
         + delete_dive_log(dive_log_id: UUID): void
     }
@@ -220,7 +240,7 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             user filtered by species tag and optionally by media type.
         + get_species_tags_for_media(media_id: UUID): list[SpeciesTag]
         + update_media_status(media_id: UUID, status: str): void
-        + update_media_metadata(media_id: UUID, metadata: dict): void
+        + update_media_details(media_id: UUID, details: dict): void
         + delete_media(media_id: UUID): void
     }
 
@@ -301,6 +321,20 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         + update_user_settings(user_id: UUID, settings: dict): void
         + search_users(query: str, limit: Optional[int], offset: Optional[int]): list[User]
     }
+
+    class CertificationRepository {
+        -- description --
+        Database-backed implementation of user certification data management operations using
+        database sessions. All methods have functionality described in interface with implementation
+        based around database operations. Handles the user_certifications table.
+        -- attributes --
+        - db_client: DatabaseClient -- For direct database access to certification data.
+        -- methods --
+        + get_user_certifications(user_id: UUID): list[UserCertification]
+        + add_user_certification(user_id: UUID, certification: UserCertification): UUID
+        + update_user_certification(certification_id: UUID, updates: dict): void
+        + delete_user_certification(certification_id: UUID): bool
+    }
 }
 
 ' Relationships
@@ -309,6 +343,7 @@ IMediaRepository <|.. MediaRepository
 IScubaDexRepository <|.. ScubaDexRepository
 ISpeciesRepository <|.. SpeciesRepository
 ISpeciesTagRepository <|.. SpeciesTagRepository
+ICertificationRepository <|.. CertificationRepository
 IUserRepository <|.. UserRepository
 
 DiveLogRepository --> DatabaseClient : uses
@@ -316,6 +351,7 @@ MediaRepository --> DatabaseClient : uses
 ScubaDexRepository --> DatabaseClient : uses
 SpeciesRepository --> DatabaseClient : uses
 SpeciesTagRepository --> DatabaseClient : uses
+CertificationRepository --> DatabaseClient : uses
 UserRepository --> DatabaseClient : uses
 
 ScubaDexRepository --> IMediaRepository : uses for species tags access during reconciliation
