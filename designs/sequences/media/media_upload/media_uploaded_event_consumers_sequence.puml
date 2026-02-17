@@ -1,0 +1,23 @@
+@startuml MediaUploaded Event Consumers Sequence
+queue "Event Bus" as Events
+participant "Media Worker" as MediaWorker
+database "Database" as DB
+
+== Parallel consumers of MediaUploaded event ==
+par MediaWorker (media processing)
+    Events -> MediaWorker: consume MediaUploaded
+    activate MediaWorker
+    MediaWorker -> DB: fetch blob storage url/key for media_id
+    MediaWorker -> Blob: retrieve media file
+    MediaWorker -> MediaWorker: process media\n(generate thumbnails, optimize formats, etc.)
+    alt processing fails
+        MediaWorker -> DB: update status\n(status: PROCESSING_FAILED)
+        MediaWorker -> Events: publish ProcessingFailed\n(media_id)
+    else processing succeeds
+        MediaWorker -> DB: save processed media metadata\n(thumbnails, dimensions, etc.)
+        MediaWorker -> DB: update status\n(status: PROCESSED)
+        MediaWorker -> Events: publish MediaProcessed\n(media_id)
+    end
+    deactivate MediaWorker
+end par
+@enduml

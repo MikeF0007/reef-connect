@@ -1,0 +1,48 @@
+@startuml OAuth 2.0 Logout Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+participant "OAuth Provider" as OAuth
+database "Database" as DB
+
+== User Initiates Logout ==
+User -> Frontend: clicks logout button
+Frontend -> API: POST /auth/logout (with JWT)
+activate API
+API -> API: validate JWT
+API -> API: extract user_id and provider_type from JWT
+
+== Optionally Revoke OAuth Token ==
+alt stored OAuth access_token exists
+    API -> DB: query stored OAuth access_token (user_id)
+    API <-- DB: access_token, token_type
+    API -> OAuth: POST /oauth/revoke (access_token, client_id, client_secret)
+    activate OAuth
+    OAuth -> OAuth: validate and revoke access_token
+    API <-- OAuth: 200 OK (revoked)
+    deactivate OAuth
+    note right of API
+        Revocation invalidates user's
+        data access from your app's perspective
+    end note
+else no stored token
+    API -> API: skip revocation (token only used for login)
+end
+
+== Clean Up Sessions ==
+API -> DB: delete refresh tokens (user_id)
+API <-- DB: refresh tokens deleted
+API -> API: invalidate all caches (user_id, profile data)
+Frontend <-- API: 200 OK (logged out)
+deactivate API
+
+== Client-Side Cleanup ==
+Frontend -> Frontend: clear JWT from storage
+Frontend -> Frontend: clear user session data
+User <- Frontend: redirect to login page
+
+note right of User
+    Note: User remains logged into OAuth provider
+    unless they separately log out from that provider
+end note
+@enduml

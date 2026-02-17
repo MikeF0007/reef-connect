@@ -1,0 +1,79 @@
+@startuml
+
+skinparam component {
+    backgroundColor Business
+    backgroundColor<<out of scope>> Silver
+}
+
+skinparam package {
+    backgroundColor LightSkyBlue
+    backgroundColor<<out of scope>> Silver
+}
+
+skinparam database {
+    backgroundColor Technology
+}
+
+skinparam queue {
+    backgroundColor Plum
+}
+
+' External Actor
+actor "User" as user
+
+package "ReefConnect System" {
+
+    ' Client Layer
+    component "Frontend SPA" as frontend <<React/TypeScript>>
+
+    ' Infrastructure Layer
+    component "Load Balancer/API Gateway" as lb <<Nginx/AWS ALB>>
+    component "CDN" as cdn <<CloudFront/Azure CDN>>
+
+    ' Service Layer
+    component "API Service" as api <<FastAPI/Python>>
+
+    ' Worker Layer
+    package "Async Workers" {
+        component "Media Worker" as media_worker <<Python>>
+        component "ML Species Tagger" as ml_worker <<Python>> <<optional>>
+        component "Materialized Data Worker" as materialized_data_worker <<Python>>
+    }
+
+    ' Data Layer
+    database "Relational DB" as db <<PostgreSQL>>
+    database "Blob Storage" as blob <<S3/MinIO>>
+    queue "Event Bus" as event_bus <<Redpanda>>
+}
+
+' User interactions
+user --> frontend : Uses web app
+
+' Frontend interactions
+frontend --> lb : HTTPS/REST API
+frontend --> cdn : Fetch media files
+frontend --> blob : Direct upload (pre-signed URLs)
+
+' Infrastructure interactions
+lb --> api : Routes requests
+blob --> cdn : Origin for media files
+
+' API Service interactions
+api --> db : Read/Write (SQL)
+api --> blob : Generate pre-signed URLs
+api --> cdn : Generate CDN URLs / invalidate cache
+api --> event_bus : Publish events
+
+' Event Bus to Workers
+event_bus --> media_worker : Consume events
+event_bus --> ml_worker : Consume events
+event_bus --> materialized_data_worker : Consume events
+
+' Worker interactions
+media_worker --> blob : Read/process media
+media_worker --> db : Update metadata
+ml_worker --> blob : Read media for analysis
+ml_worker --> db : Save species tags
+materialized_data_worker --> db : Update aggregated stats
+
+@enduml

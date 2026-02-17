@@ -12,7 +12,12 @@ application.
 ReefConnect/
 ├── designs/          # System design documents
 ├── frontend/         # React + TypeScript frontend
-└── backend/          # FastAPI Python backend
+└── backend/          # Python backend
+    ├── api_service/              # FastAPI API service
+    ├── common/                   # Shared utilities and classes
+    ├── materialized_data_worker/ # Data aggregation worker
+    ├── media_worker/             # Media processing worker
+    └── ml_tagger_worker/         # ML species tagging worker
 ```
 
 ## Getting Started

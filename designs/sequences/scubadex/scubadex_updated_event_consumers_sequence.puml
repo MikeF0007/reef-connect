@@ -1,0 +1,12 @@
+@startuml ScubaDexUpdated Event Consumers Sequence
+queue "Event Bus" as Events
+participant "API Server" as API
+
+== Parallel consumers of ScubaDexUpdated event ==
+par API Service
+    Events -> API: consume ScubaDexUpdated (user_id)
+    activate API
+    API -> API: invalidate ScubaDex cache (user_id)
+    deactivate API
+end par
+@enduml

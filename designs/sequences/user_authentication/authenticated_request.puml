@@ -1,0 +1,42 @@
+@startuml Authenticated API Request & JWT Validation Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+database "Database" as DB
+
+== User Makes Authenticated Request ==
+User -> Frontend: requests protected resource (e.g., view dive logs)
+Frontend -> Frontend: retrieve JWT from storage
+Frontend -> API: GET /dive-log (with Authorization header: Bearer {JWT})
+activate API
+API -> API: extract JWT from Authorization header
+alt JWT missing or malformed
+    Frontend <-- API: 401 Unauthorized (missing or invalid token)
+    deactivate API
+else JWT present
+    API -> API: validate JWT signature (using secret key)
+    alt signature invalid
+        Frontend <-- API: 401 Unauthorized (invalid token)
+        deactivate API
+    else signature valid
+        API -> API: check JWT expiration (exp claim)
+        alt JWT expired
+            Frontend <-- API: 401 Unauthorized (token expired)
+            deactivate API
+        else JWT not expired
+            API -> API: extract user_id from JWT (sub claim)
+            API -> API: verify authorization for requested resource (user_id matches request context)
+            alt not authorized
+                Frontend <-- API: 403 Forbidden (access denied)
+                deactivate API
+            else authorized
+                API -> DB: query protected resource (user_id, filters, pagination)
+                API <-- DB: resource data
+                Frontend <-- API: 200 OK (resource data)
+                deactivate API
+            end
+        end
+    end
+end
+User <-- Frontend: display protected resource
+@enduml

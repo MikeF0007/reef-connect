@@ -1,0 +1,96 @@
+@startuml Materialized Data Worker Service Classes
+
+package "materialized_data_worker.PlantUML file: materialized_data_worker_classes" <<frame>> {
+    class MaterializedDataWorkerContainerController {
+        -- description --
+        Initializes and manages the lifecycle of the MaterializedDataWorkerService, including
+        setting up the Kafka manager for event consumption/production, and handling graceful
+        shutdown.
+        -- attributes --
+        - event_service: MaterializedDataWorkerEventService -- For routing events to the
+            MaterializedDataWorker via configured callbacks.
+    }
+
+    class MaterializedDataWorkerEventService {
+        -- description --
+        Routes incoming events to appropriate processing methods in the MaterializedDataWorker based
+        on event type.
+        -- attributes --
+        - materialized_data_worker: MaterializedDataWorker -- For delegating event processing to.
+        -- methods --
+        + __init__(event_publisher: IEventPublisher) -- Initializes the
+            MaterializedDataWorkerEventService with core MaterializedDataWorker object and
+            appropriate event publishing interface.
+        + handle_species_tagged(event: SpeciesTaggedEvent): void -- Callback for handling the
+            SpeciesTaggedEvent, delegating processing of the event to the MaterializedDataWorker.
+        + handle_species_tag_removed(event: SpeciesTagRemovedEvent): void -- Callback for handling
+            the SpeciesTagRemovedEvent, delegating processing of the event to the
+            MaterializedDataWorker.
+        + handle_media_deleted(event: MediaDeletedEvent): void -- Callback for handling the
+            MediaDeletedEvent, delegating processing of the event to the MaterializedDataWorker.
+    }
+
+    class MaterializedDataWorker {
+        -- description --
+        Delegates to ScubaDexWorker for database operations while processing SpeciesTagged,
+        SpeciesTagRemoved, and MediaDeleted events. Publishes ScubaDexUpdated event after
+        processing.
+        -- attributes --
+        - event_publisher: IEventPublisher -- For publishing events related to materialized data
+            updates. Subdomain-workers will probably do most of the publishing, but housing in top
+            level worker in case.
+        - scubadex_worker: ScubaDexWorker -- For delegating ScubaDex-related processing to.
+        -- methods --
+        + __init__(event_publisher: IEventPublisher): void -- Initializes the MaterializedDataWorker
+            with necessary subdomain-workers and appropriate event publishing interface.
+        + process_species_tagged(event: SpeciesTaggedEvent): void -- Delegates processing of a
+            SpeciesTaggedEvent.
+        + process_species_tag_removed(event: SpeciesTagRemovedEvent): void -- Delegates processing
+            of a SpeciesTagRemovedEvent.
+        + process_media_deleted(event: MediaDeletedEvent): void -- Delegates processing of a
+            MediaDeletedEvent.
+    }
+
+    class ScubaDexWorker {
+        -- description --
+        Performs incremental counter updates on ScubaDex entries (no debouncing needed) and
+        publishes a ScubaDexUpdated event after processing.
+        -- attributes --
+        - scubadex_repository: IScubaDexRepository -- For performing operations related to ScubaDex
+            materialized data management.
+        - event_publisher: IEventPublisher -- For publishing events related to ScubaDex updates.
+        -- methods --
+        + __init__(repository: IScubaDexRepository, event_publisher: IEventPublisher) -- Initializes
+            the ScubaDexWorker with necessary IScubaDexRepository and appropriate event publishing
+            interface.
+        + process_species_tagged(event: SpeciesTaggedEvent): void -- Following a SpeciesTaggedEvent,
+            updates the ScubaDex materialized data by recording a species encounter for the user
+            and publishes a ScubaDexUpdatedEvent.
+         + process_species_tag_removed(event: SpeciesTagRemovedEvent): void -- Following a
+            SpeciesTagRemovedEvent, updates the ScubaDex materialized data by removing a species
+            encounter for the user and publishes a ScubaDexUpdatedEvent.
+        + process_media_deleted(event: MediaDeletedEvent): void -- Following a MediaDeletedEvent,
+            updates the ScubaDex materialized data by clearing all species encounters for the user
+            and media associated with the deleted media item, and publishes a ScubaDexUpdatedEvent
+            with all affected updates.
+    }
+}
+
+' Classes from other packages (referenced in relationships)
+package "common.db.PlantUML file: db_classes" <<frame>> {
+    interface IScubaDexRepository
+}
+package " common.container.PlantUML file: container_classes" <<frame>> {
+    interface IEventPublisher
+    class KafkaEventBasedContainerController
+}
+
+' Relationships
+KafkaEventBasedContainerController <|-- MaterializedDataWorkerContainerController : inherits
+MaterializedDataWorkerContainerController --> MaterializedDataWorkerEventService : sets up
+MaterializedDataWorkerEventService --> MaterializedDataWorker : delegates to
+MaterializedDataWorker --> ScubaDexWorker : delegates to
+ScubaDexWorker --> IScubaDexRepository : uses
+ScubaDexWorker --> IEventPublisher : uses
+
+@enduml

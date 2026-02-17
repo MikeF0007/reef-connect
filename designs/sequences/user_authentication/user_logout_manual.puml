@@ -1,0 +1,28 @@
+@startuml User Logout & Token Invalidation Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+database "Database" as DB
+
+== User Initiates Logout ==
+User -> Frontend: clicks logout button
+Frontend -> API: POST /auth/logout (with JWT in Authorization header)
+activate API
+API -> API: extract JWT from Authorization header
+alt JWT missing or invalid
+    API -> API: treat as already logged out (no error)
+else JWT valid
+    note right of API
+        Since using stateless strategy:
+        - No server-side action needed (JWT becomes invalid on client)
+        - Client should discard token
+    end note
+    API -> DB: optionally record logout event (user_id, timestamp)
+    API <-- DB: logout recorded
+end
+Frontend <-- API: 200 OK (logged out)
+deactivate API
+Frontend -> Frontend: clear JWT from storage
+Frontend -> Frontend: clear user session data
+User <-- Frontend: redirect to login page
+@enduml

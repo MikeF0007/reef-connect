@@ -1,0 +1,64 @@
+@startuml View/Edit Own Profile Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+database "Database" as DB
+
+== User Views Own Profile ==
+User -> Frontend: navigates to profile page
+Frontend -> API: GET /profile (with JWT)
+activate API
+API -> API: validate JWT
+API -> DB: query user profile (user_id from JWT)
+API <-- DB: user profile data
+Frontend <-- API: 200 OK (profile data: username, bio, privacy_settings, etc.)
+deactivate API
+User <-- Frontend: display editable profile form
+
+== User Edits Profile ==
+User -> Frontend: updates profile fields (bio, privacy settings)
+Frontend -> API: PUT /profile (with JWT, updated fields)
+activate API
+API -> API: validate JWT
+API -> API: validate input (bio length, privacy settings values)
+alt validation fails
+    API --> Frontend: 400 Bad Request (error details)
+    deactivate API
+else validation succeeds
+    API -> DB: update user profile (user_id from JWT, updated fields)
+    API <-- DB: updated profile
+    API -> API: invalidate profile cache (user_id)
+    Frontend <-- API: 200 OK (updated profile data)
+    deactivate API
+end
+User <-- Frontend: show confirmation message, display updated profile
+
+== User Deletes Profile ==
+User -> Frontend: clicks delete profile button
+Frontend -> Frontend: show confirmation dialog (warn about data loss)
+User -> Frontend: confirms deletion
+Frontend -> API: DELETE /profile (with JWT)
+activate API
+API -> API: validate JWT
+API -> API: extract user_id from JWT
+alt user not found
+    Frontend <-- API: 404 Not Found
+    deactivate API
+else user found
+    API -> DB: begin transaction
+    API -> DB: delete user profile data
+    API -> DB: delete user authentication record
+    API -> DB: optionally archive user data (soft delete) for compliance
+    API -> DB: remove user from all friends relationships (friends table)
+    API <-- DB: friends removed
+    API -> DB: remove user from leaderboard entries (leaderboard table)
+    API <-- DB: leaderboard entries removed
+    API -> DB: delete refresh tokens (invalidate all sessions)
+    API <-- DB: deletion confirmed
+    API -> API: invalidate all caches (user_id, profile data, leaderboard, friends)
+    Frontend <-- API: 200 OK (account deleted)
+    deactivate API
+end
+Frontend -> Frontend: clear JWT and all user data from storage
+User <-- Frontend: redirect to logout page / welcome page
+@enduml

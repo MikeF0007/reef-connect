@@ -1,0 +1,65 @@
+@startuml Media Upload Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+database "Blob Storage" as Blob
+database "Database" as DB
+
+== User Uploads Media File(s) ==
+User -> Frontend: selects media file(s)
+Frontend -> API: request presigned URLs\n(array of files/metadata)
+activate API
+loop for each file
+    API -> API: validate auth & authorization
+    API -> API: validate file type/size
+    API -> API: check rate limit\n(prevent spam/DDOS)
+    alt validation fails
+        API -> API: mark file as invalid (collect error)
+    else validation succeeds
+        API -> DB: create media record\n(status: PENDING, return media_id)
+        DB --> API: media_id
+        API -> Blob: generate presigned URL\n(for media_id)
+        Blob --> API: presigned URL
+        API -> API: mark file as valid (collect media_id, presigned URL)
+    end
+end
+alt all files invalid
+    API --> Frontend: 400 Bad Request\n(array of error messages)
+else at least one file valid
+    API --> Frontend: 200 OK\n(array of results: valid media_ids/presigned URLs and error messages)
+end
+deactivate API
+
+== Direct Upload to Blob Storage ==
+par Each Valid File Upload
+    Frontend -> API: update status\n(media_id, status: UPLOADING)
+    API -> DB: update media record\n(status: UPLOADING)
+    Frontend --> User: show upload progress (0%)
+    Frontend -> Blob: PUT media file\n(with progress updates)
+    activate Blob
+    loop upload progress
+        Blob --> Frontend: upload progress %
+        Frontend --> User: update progress bar
+    end
+    alt upload fails
+        Blob --> Frontend: upload error
+        Frontend -> API: update status\n(media_id, status: FAILED)
+        API -> DB: update media record\n(status: FAILED, error details)
+        Frontend --> User: show retry button for file
+    else upload succeeds
+        Blob --> Frontend: 200 OK
+        deactivate Blob
+        Frontend -> API: update status\n(media_id, status: UPLOADED)
+        activate API
+        API -> DB: update media record\n(status: UPLOADED)
+        API -> Events: publish MediaUploaded event\n(media_id, user_id)
+        note right of API
+            Users should not be able to update any media that has not fully uploaded and emitted
+            this event.
+        end note
+        API --> Frontend: 200 OK
+        deactivate API
+        Frontend --> User: upload complete,\nprocessing...
+    end
+end par
+@enduml

@@ -1,0 +1,91 @@
+@startuml OAuth 2.0 Login Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+participant "OAuth Provider" as OAuth
+participant "Provider API" as ProviderAPI
+database "Database" as DB
+
+== User Initiates OAuth Login ==
+User -> Frontend: clicks "Login with Google/Facebook/etc."
+Frontend -> API: GET /auth/oauth/{provider}/authorize
+activate API
+API -> API: generate state parameter (CSRF protection)
+API -> API: store state in session or cache (state, timestamp, user_session_id)
+Frontend <-- API : redirect URL with OAuth params
+deactivate API
+note right of API
+    OAuth authorize URL includes:
+    - client_id (app's OAuth client ID)
+    - redirect_uri (callback URL)
+    - response_type=code
+    - scope (email, profile, etc.)
+    - state (CSRF token)
+end note
+
+Frontend -> OAuth: redirect to OAuth provider authorization page
+activate OAuth
+User <-- OAuth: show authorization consent screen
+
+== User Grants Permission ==
+User -> OAuth: authenticates & grants permission
+OAuth -> OAuth: generate authorization code
+OAuth --> Frontend: redirect to callback URL (code, state)
+deactivate OAuth
+
+== Backend Exchanges Code for Token ==
+Frontend -> API: GET /auth/oauth/{provider}/callback?code={code}&state={state}
+activate API
+API -> API: validate state parameter (matches stored state)
+alt state invalid or expired
+    Frontend <-- API: 403 Forbidden (CSRF validation failed)
+    deactivate API
+else state valid
+    API -> API: remove state from cache
+    API -> OAuth: POST /oauth/token (code, client_id, client_secret, redirect_uri)
+    activate OAuth
+    OAuth -> OAuth: validate authorization code
+    API <-- OAuth: access_token, token_type, expires_in, refresh_token (optional)
+    deactivate OAuth
+
+    == Retrieve User Info from Provider ==
+    API -> ProviderAPI: GET /userinfo (with access_token)
+    activate ProviderAPI
+    API <-- ProviderAPI: user data (provider_user_id, email, name, picture)
+    deactivate ProviderAPI
+
+    == Create or Update User ==
+    API -> DB: query user by provider_user_id and provider
+    API <-- DB: user record (or null)
+    alt user not found
+        API -> DB: check if email already exists
+        API <-- DB: existing user (or null)
+        alt email exists (linked to different auth method)
+            API -> API: optionally link accounts or reject
+            note right of API
+                Strategy options:
+                - Auto-link if email matches
+                - Require explicit account linking
+                - Reject and ask user to login with original method
+            end note
+        end
+        API -> DB: create user record (provider, provider_user_id, email, name)
+        API <-- DB: user_id
+        API -> DB: create user profile (user_id, name, profile_picture from OAuth)
+        API <-- DB: profile created
+    else user found
+        API -> DB: update user data (name, profile_picture, last_login)
+        API <-- DB: updated
+    end
+
+    API -> DB: optionally store OAuth tokens (access_token, refresh_token, expires_at)
+    API <-- DB: tokens stored
+
+    API -> API: generate application JWT (user_id, email, exp)
+    Frontend <-- API : 200 OK (JWT, user data, redirect URL)
+    deactivate API
+end
+
+Frontend -> Frontend: store JWT in storage
+User <-- Frontend: redirect to dashboard
+@enduml

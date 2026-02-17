@@ -1,0 +1,20 @@
+@startuml MediaUpdated Event Consumers Sequence
+queue "Event Bus" as Events
+participant "API Server" as API
+
+== Parallel consumers of MediaUpdated event ==
+par API Cache Invalidation
+	Events -> API: consume MediaUpdated (media_id, user_id, changed_fields)
+	activate API
+	API -> API: invalidate media cache (media_id)
+	API -> API: if dive_log_id in changed_fields, invalidate dive log cache for that dive_log_id
+	deactivate API
+end par
+
+note right Events
+	Non-species-tag metadata changes are handled by MediaUpdated. Species tagging and tag removal
+    are handled by separate SpeciesTagged/SpeciesTagRemoved events, which have their own consumers
+    (e.g., MaterializedDataWorker for ScubaDex recalculation). These may be submitted in the same
+    media update request/form in the UI though, and so both types of events may fire together.
+end note
+@enduml

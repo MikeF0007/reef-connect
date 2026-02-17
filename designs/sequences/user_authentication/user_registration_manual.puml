@@ -1,0 +1,34 @@
+@startuml User Registration Manual Email Entry & Profile Creation Sequence
+actor User
+participant Frontend
+participant "API Server" as API
+database "Database" as DB
+
+== User Submits Registration Form ==
+User -> Frontend: enters email, password, username
+Frontend -> API: POST /auth/register (email, password, username)
+activate API
+API -> API: validate input (email format, password strength, username length)
+alt validation fails
+    Frontend <-- API : 400 Bad Request (error details)
+    deactivate API
+else validation succeeds
+    API -> DB: check if email already exists
+    API <-- DB: email existence result
+    alt email already registered
+        Frontend <-- API : 409 Conflict (email already exists)
+        deactivate API
+    else email is unique
+        API -> API: hash password (bcrypt or similar)
+        API -> DB: create user record (email, hashed_password, username, created_at)
+        API <-- DB: user_id
+        API -> DB: create user profile (user_id, default settings)
+        API <-- DB: profile created
+        API -> API: generate JWT (user_id, email, exp)
+        Frontend <-- API : 201 Created (JWT, user data)
+        Frontend -> Frontend: store JWT (localStorage/sessionStorage)
+        deactivate API
+    end
+end
+User <-- Frontend: redirect to dashboard / show success
+@enduml

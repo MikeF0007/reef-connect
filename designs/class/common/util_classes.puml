@@ -1,0 +1,64 @@
+@startuml Utility Classes
+
+package "common.utils.PlantUML file: util_classes" <<frame>> {
+    class BlobStorageClient {
+        -- description --
+        Provides an interface for reading and writing to blob storage service.
+        -- methods --
+        + upload_raw(data: bytes, key: str): void -- Uploads raw data to blob storage with the
+            specified key.
+        + upload_decoded(data, format: str, key: str): void -- Convenience method that uses
+            MediaCodec to encode data in the specified format and uploads it to blob storage with
+            the specified key.
+        + download_raw(key: str): bytes -- Downloads raw data from blob storage for the specified
+            key.
+        + download_decoded(key: str, format: str): object -- Convenience method that downloads data from
+            blob storage for the specified key and uses MediaCodec to decode it from the specified
+            format before returning it.
+        + generate_presigned_url(key: str): str -- Generates a presigned URL for accessing the
+            blob at the specified key, if supported by the underlying blob storage service.
+    }
+
+    class MediaCodec {
+        -- description --
+        Provides methods for encoding and decoding media data in various formats. Used by
+        BlobStorageClient for for some of its interfaces, but can also be used directly by other
+        classes that want to directly handle media encoding/decoding.
+        -- methods --
+        {static} + decode(data: bytes, format: str) -- Decodes the given data from the specified format and returns the
+            decoded media object.
+        {static} + encode(data, format: str): bytes -- Encodes the given media object into the specified format and
+            returns the encoded data as bytes.
+    }
+
+    class Logger {
+        -- description --
+        Provides a structured logging interface for consistent log formatting and contextual
+        information.
+        -- methods --
+        + get_logger(name: str): Logger -- Factory method to get a logger instance with the
+            specified name.
+        + debug(message: str, **context): void -- Logs a debug-level message with optional
+            contextual information.
+        + info(message: str, **context): void -- Logs an info-level message with optional contextual information.
+        + warn(message: str, **context): void -- Logs a warning-level message with optional
+            contextual information.
+        + error(message: str, **context): void -- Logs an error-level message with optional
+            contextual information.
+    }
+
+    class Config {
+        -- description --
+        Provides methods for loading and accessing configuration settings for reef-connect.
+        -- methods --
+        + get(key: str = None): any -- Retrieves the value of a configuration setting by key,
+            returning the default value if the key is not found.
+        + load_from_env(): void -- Loads configuration settings from environment variables, with
+            appropriate parsing and type conversion.
+    }
+}
+
+' Relationships
+BlobStorageClient --> MediaCodec : uses
+
+@enduml
