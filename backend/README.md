@@ -1,6 +1,7 @@
 # ReefConnect Backend
 
-FastAPI-based REST API for the ReefConnect social dive logging platform.
+Microservices-based backend for the ReefConnect social dive logging platform, featuring a FastAPI
+REST API and async workers for data processing.
 
 ## Tech Stack
 
@@ -12,12 +13,16 @@ FastAPI-based REST API for the ReefConnect social dive logging platform.
 
 ## Development Setup
 
-Coming soon - will include:
-- Virtual environment setup
-- Database configuration
-- Running migrations
-- API development server
-- Running tests
+- **Install dependencies**
+    `pip install -r api_service/requirements.txt`
+- **Run the API server**:
+    `python -m uvicorn backend.api_service.app.app:app --reload` (from project root)
+
+## API Documentation
+
+Once running, API docs will be available at:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
 ## Project Structure
 
@@ -27,14 +32,19 @@ backend/
 ├── api_service/                # API service for external clients (i.e. frontend)
 │   ├── app/                      # App structured for FastAPI
 │   │   ├── api/                    # API routes and endpoints
-│   │   ├── models/                 # SQLAlchemy models
-│   │   ├── schemas/                # Pydantic schemas
+│   │   ├── schemas/                # Pydantic schemas (API-specific)
 │   │   ├── services/               # Business logic
-│   │   └── core/                   # Config, security, database
+│   │   └── core/                   # Config, security, database connections
 │   ├── tests/                      # Test suite
-│   ├── alembic/                    # Database migrations
 │   └── requirements.txt            # Python dependencies
-├── common/                     # Common classes, enums, utilities, config, etc.
+├── common/                     # Common classes, enums, utilities, config, and shared DB components
+│   ├── container/                # Container management and dependency injection
+│   ├── db/                       # Database-related components
+│   │   ├── models/                 # ORM models (using SQLAlchemy)
+│   │   ├── migrations/             # Database migrations (using Alembic)
+│   │   └── repositories/           # Data access repositories
+│   ├── types/                    # Common types, enums, and event types
+│   └── utils/                    # General utility functions and helpers
 ├── materialized_data_worker/   # Async worker to produce materialized data (i.e. ScubaDex)
 │   ├── app/                      # Main worker code
 │   └── tests/                    # Test suite
@@ -46,8 +56,8 @@ backend/
     └── tests/                    # Worker tests
 ```
 
-## API Documentation
-
-Once running, API docs will be available at:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+## Coming Soon
+- Virtual environment setup
+- Database configuration
+- Running migrations
+- Running tests

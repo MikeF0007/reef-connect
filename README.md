@@ -34,9 +34,15 @@ npm run dev
 
 ```bash
 cd backend
-# Coming soon - FastAPI + PostgreSQL setup
-# Will include: virtual environment, dependencies, database migrations
+pip install -r api_service/requirements.txt
+python -m uvicorn backend.api_service.app.app:app --reload
 ```
+
+API docs at:
+- `http://localhost:8000/docs` (Swagger UI)
+- `http://localhost:8000/redoc` (ReDoc)
+
+Database and full setup coming soon.
 
 ### Development Tools
 
@@ -70,7 +76,10 @@ nox -s fix        # Auto-fix linting issues
 - shadcn/ui components
 
 **Backend:**
-- Python
-- FastAPI
-- PostgreSQL
-- Docker
+- Python (primary language)
+- FastAPI (API server)
+- Pydantic (validation)
+- PostgreSQL (database)
+- SQLAlchemy (ORM)
+- Alembic (migrations)
+- Docker (containerization/deployment)
