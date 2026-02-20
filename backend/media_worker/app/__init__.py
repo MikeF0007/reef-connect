@@ -1,1 +1,0 @@
-# Media worker app package

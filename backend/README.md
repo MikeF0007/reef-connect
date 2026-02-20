@@ -14,19 +14,21 @@ REST API and async workers for data processing.
 ## Development Setup
 
 - **Install dependencies**
-    `pip install -r api_service/requirements.txt`
+  `pip install -r api_service/requirements.txt`
 - **Run the API server**:
-    `python -m uvicorn backend.api_service.app.app:app --reload` (from project root)
+  `python -m uvicorn backend.api_service.app.app:app --reload` (from project root)
 
 ## API Documentation
 
 Once running, API docs will be available at:
+
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
 ## Project Structure
 
 Planned structure:
+
 ```
 backend/
 ├── api_service/                # API service for external clients (i.e. frontend)
@@ -57,6 +59,7 @@ backend/
 ```
 
 ## Coming Soon
+
 - Virtual environment setup
 - Database configuration
 - Running migrations
