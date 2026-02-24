@@ -7,8 +7,18 @@ This directory contains Alembic database migration scripts for the ReefConnect b
 ### Environment Setup
 
 Migrations use the backend's configuration system, which supports different deployment modes:
-- **Monolith Mode** (`DEPLOYMENT_MODE=monolith`): Loads from `backend/.env` (ideal for dev/demos).
-- **Microservices Mode** (`DEPLOYMENT_MODE=microservices`): Loads from `backend/.env`.
+
+**Monolith Mode**
+- Loads from `backend/.env` (shared backend config) and, if present, `backend/.env.monolith`
+(monolith-specific overrides). Use `.env.monolith` for variables unique to monolith mode or
+overriding `backend/.env`. This include service-level configs since monolith mode does not load
+service configs.
+- (`DEPLOYMENT_MODE=monolith`)
+**Microservices Mode**
+- Assuming this is related to one service deployment, loads from `backend/.env` (shared backend
+config) and, if present, the given service's `.env` (e.g., `api_service/.env`) for overrides or
+service specific configuration.
+- (`DEPLOYMENT_MODE=microservices`)
 
 Set the mode when running commands, or add it to your `.env` file.
 

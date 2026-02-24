@@ -18,9 +18,38 @@ REST API and async workers for data processing.
 - **Run the API server**:
   `python -m uvicorn backend.api_service.app.app:app --reload` (from project root)
 
-## API Documentation
+## Environment Configuration
 
-Once running, API docs will be available at:
+The backend supports two deployment modes to balance scalability with development convenience. This
+approach allows the system to scale microservices independently while maintaining monolith
+convenience for early development and small-scale demos.
+
+### Deployment Modes
+
+**Monolith Mode**
+- Loads from `backend/.env` (shared backend config) and, if present, `backend/.env.monolith`
+(monolith-specific overrides). Use `.env.monolith` for variables unique to monolith mode or
+overriding `backend/.env`. This include service-level configs since monolith mode does not load
+service configs.
+- (`DEPLOYMENT_MODE=monolith`)
+**Microservices Mode**
+- Assuming this is related to one service deployment, loads from `backend/.env` (shared backend
+config) and, if present, the given service's `.env` (e.g., `api_service/.env`) for overrides or
+service specific configuration.
+- (`DEPLOYMENT_MODE=microservices`)
+
+TODO: Consider adopting ENV_FILE selector approach for simplifying handling of dev/stage/prod vars
+as the project grows. For now, the current setup is sufficient for early development/deployment.
+
+### Setup
+
+1. Copy the base `backend/.env.example` to `backend/.env` (shared backend config).
+2. Copy the appropriate mode-specific `.env.example` files:
+   - For monolith mode: Copy `backend/.env.monolith.example` to `backend/.env.monolith`
+   - For microservices mode: For given component (e.g., `api_service/`), copy its `.env.example` to
+   `component/.env`
+3. Adjust variables as needed (e.g., database URLs, secrets).
+4. Set `DEPLOYMENT_MODE` in your environment or `.env` file.
 
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
@@ -58,9 +87,30 @@ backend/
     └── tests/                    # Worker tests
 ```
 
-## Coming Soon
+## Virtual Environment Setup
 
-- Virtual environment setup
+It is recommended to use a Python virtual environment for development:
+
+```bash
+# Create a virtual environment (if not already created)
+python -m venv .venv
+
+# Activate the virtual environment:
+# Windows, Command Prompt
+.venv\Scripts\activate
+# Windows, PowerShell
+.venv\Scripts\Activate.ps1
+# macOS/Linux
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r api_service/requirements.txt
+```
+
+## Database Migrations
+
+For migration commands and environment setup, see [common/db/migrations/README.md](common/db/migrations/README.md).
+
+## Coming Soon
 - Database configuration
-- Running migrations
 - Running tests
