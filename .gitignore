@@ -19,6 +19,8 @@ ENV/
 
 # Environment variables
 .env*
+!.env.example
+!.env.monolith.example
 
 # Build outputs
 dist/
