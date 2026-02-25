@@ -23,15 +23,24 @@ from common.db.models.base import Base
 # ============================================================================
 
 # Create async engine for database operations
-async_engine: AsyncEngine = create_async_engine(
-    settings.database_url_str,
-    echo=settings.DB_ECHO,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_timeout=settings.DB_POOL_TIMEOUT,
-    pool_pre_ping=True,  # Enable connection health checks
-    future=True,
-)
+if "sqlite" in settings.database_url_str:
+    # SQLite doesn't support pooling parameters
+    async_engine: AsyncEngine = create_async_engine(
+        settings.database_url_str,
+        echo=settings.DB_ECHO,
+        future=True,
+    )
+else:
+    # PostgreSQL with pooling
+    async_engine: AsyncEngine = create_async_engine(
+        settings.database_url_str,
+        echo=settings.DB_ECHO,
+        pool_size=settings.DB_POOL_SIZE,
+        max_overflow=settings.DB_MAX_OVERFLOW,
+        pool_timeout=settings.DB_POOL_TIMEOUT,
+        pool_pre_ping=True,  # Enable connection health checks
+        future=True,
+    )
 
 # Create async session factory
 AsyncSessionLocal = async_sessionmaker(

@@ -11,23 +11,25 @@ skinparam entity {
 }
 
 entity "users" as users {
-  *id : uuid
+  * id : uuid PK
+  * email : text UNIQUE
+  * username : text UNIQUE
+  * password_hash : text
+  * created_at : timestamptz
+  * updated_at : timestamptz
+  * email_verified : boolean
+  * mfa_enabled : boolean
   --
-  *email : text
-  *username : text
-  *password_hash : text
-  email_verified : boolean
   email_verified_at : timestamptz
   auth_providers : jsonb
-  mfa_enabled : boolean
   mfa_secret : text
-  *created_at : timestamptz
-  *updated_at : timestamptz
 }
 
 entity "user_profiles" as user_profiles {
-  *id : uuid
-  *user_id : uuid
+  * id : uuid PK
+  * user_id : uuid FK
+  * created_at : timestamptz
+  * updated_at : timestamptz
   --
   bio : text
   avatar_url : text
@@ -37,45 +39,42 @@ entity "user_profiles" as user_profiles {
   location : text
   website_url : text
   birth_date : date
-  *created_at : timestamptz
-  *updated_at : timestamptz
 }
 
 entity "user_settings" as user_settings {
-  *id : uuid
-  *user_id : uuid
-  --
-  preferred_units : text (imperial | metric)
-  timezone : text
-  language : text
-  *created_at : timestamptz
-  *updated_at : timestamptz
+  * id : uuid PK
+  * user_id : uuid FK
+  * created_at : timestamptz
+  * updated_at : timestamptz
+  * preferred_units : UnitSystem
+  * timezone : text
+  * language : text
 }
 
 entity "privacy_settings" as privacy_settings {
-  *id : uuid
-  *user_id : uuid
-  --
-  profile_visibility : text (public | private)
-  dive_logs_visibility : text (public | private)
-  media_visibility : text (public | private)
-  stats_visibility : text (public | private)
-  *created_at : timestamptz
-  *updated_at : timestamptz
+  * id : uuid PK
+  * user_id : uuid FK
+  * created_at : timestamptz
+  * updated_at : timestamptz
+  * profile_visibility : Visibility
+  * dive_logs_visibility : Visibility
+  * media_visibility : Visibility
+  * stats_visibility : Visibility
 }
 
 entity "user_certifications" as user_certifications {
-  *id : uuid
-  *user_id : uuid
+  * id : uuid PK
+  * user_id : uuid FK
+  * certification_name : text
+  * issuer : text
+  * issued_date : date
+  * created_at : timestamptz 
+  * updated_at : timestamptz
   --
-  *certification_name : text
-  *issuer : text
-  *issued_date : date
   expiry_date : date
   certification_number : text
   notes : text
   verified : boolean
-  *created_at : timestamptz
 }
 
 ' Relationships

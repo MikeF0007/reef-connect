@@ -6,19 +6,36 @@ from sqlalchemy import pool
 
 from alembic import context
 
+config = context.config
+
 # Add the backend directory to Python path
-backend_dir = os.path.dirname(os.path.dirname(__file__))
+backend_dir = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+)
 sys.path.insert(0, backend_dir)
 
 # Import our database configuration
 from common.config import settings
+from common.db.models.base import Base
+
+# Import all models to ensure they're registered with SQLAlchemy metadata
+from common.db.models import (
+    DiveLog,
+    Media,
+    MediaSpeciesTag,
+    ScubadexEntry,
+    Species,
+    User,
+    UserProfile,
+    UserSettings,
+    PrivacySettings,
+    UserCertification,
+)
 
 # from common.db.database import async_engine  # Don't import async engine for migrations
 
-# For now, since we have no models, use None for target_metadata
-# Later we'll import from common.db.models.base import Base
-# target_metadata = Base.metadata
-target_metadata = None
+# Import the Base metadata for migrations
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -66,3 +83,9 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

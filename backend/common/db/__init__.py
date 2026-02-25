@@ -8,15 +8,21 @@ Exports:
     SyncSessionLocal: Sync session factory
 """
 
-from common.db.database import (
-    AsyncSessionLocal,
-    SyncSessionLocal,
-    async_engine,
-    close_db,
-    get_sync_db,
-    init_db,
-    sync_engine,
-)
+import sys
+
+# Only import database engines when not running migrations
+# This prevents asyncpg dependency issues during Alembic operations
+if "alembic" not in sys.argv[0] if sys.argv else False:
+    from common.db.database import (
+        AsyncSessionLocal,
+        SyncSessionLocal,
+        async_engine,
+        close_db,
+        get_sync_db,
+        init_db,
+        sync_engine,
+    )
+
 from common.db.models.base import Base
 
 __all__ = [

@@ -7,7 +7,11 @@ for flexible configuration based on the deployment context.
 
 import os
 import secrets
-from typing import Literal
+
+try:
+    from typing import Literal, Union, List
+except ImportError:
+    from typing_extensions import Literal, Union, List
 
 from pydantic import Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,7 +25,12 @@ DEPLOYMENT_MODE = os.getenv("DEPLOYMENT_MODE", "monolith")
 # Detect component directory (e.g., 'api_service', 'media_worker')
 # Assumes this script is run from a component's directory or backend root
 current_dir = os.path.basename(os.getcwd())
-if current_dir in ["api_service", "media_worker", "ml_tagger_worker", "materialized_data_worker"]:
+if current_dir in [
+    "api_service",
+    "media_worker",
+    "ml_tagger_worker",
+    "materialized_data_worker",
+]:
     component = current_dir
 else:
     component = None  # Running from backend root or unknown
@@ -62,13 +71,13 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
 
     # Database Configuration
-    DATABASE_URL: PostgresDsn = Field(
-        default="postgresql+asyncpg://reefconnect:password@localhost:5432/reefconnect_dev",
-        description="Async database URL for SQLAlchemy (asyncpg driver)"
+    DATABASE_URL: Union[PostgresDsn, str] = Field(
+        default="sqlite+aiosqlite:///./reefconnect_dev.db",
+        description="Async database URL for SQLAlchemy (SQLite for development)",
     )
-    DATABASE_SYNC_URL: PostgresDsn = Field(
-        default="postgresql+psycopg2://reefconnect:password@localhost:5432/reefconnect_dev",
-        description="Sync database URL for Alembic migrations (psycopg2 driver)"
+    DATABASE_SYNC_URL: Union[PostgresDsn, str] = Field(
+        default="sqlite:///./reefconnect_dev.db",
+        description="Sync database URL for Alembic migrations (SQLite for development)",
     )
 
     # Database Pool Settings
@@ -80,25 +89,26 @@ class Settings(BaseSettings):
     # JWT Authentication
     SECRET_KEY: str = Field(
         default_factory=lambda: secrets.token_urlsafe(32),
-        description="Secret key for JWT encoding/decoding"
+        description="Secret key for JWT encoding/decoding",
     )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, ge=1, le=1440)
 
     # CORS Settings
-    BACKEND_CORS_ORIGINS: list[str] = Field(
+    BACKEND_CORS_ORIGINS: List[str] = Field(
         default=["http://localhost:5173", "http://localhost:3000"],
-        description="List of allowed CORS origins"
+        description="List of allowed CORS origins",
     )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+    def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         """Parse CORS origins from string or list."""
         if isinstance(v, str):
             # Handle JSON string format from env var
             if v.startswith("["):
                 import json
+
                 return json.loads(v)
             # Handle comma-separated string
             return [origin.strip() for origin in v.split(",") if origin.strip()]

@@ -2,24 +2,26 @@
 ' Core Data ER diagram: dive_logs, media, species, tags
 
 entity "users" as users {
-  * id : uuid
+  * id : uuid PK
   --
   (see er_user_profile.puml for remaining attributes)
 }
 
 entity "dive_logs" as dive_logs {
-  * id : uuid
+  * id : uuid PK
   * user_id : uuid FK
   * dive_date : date
   * dive_title : text
   * dive_site : text
   * duration_minutes : integer
+  * created_at : timestamptz
+  * updated_at : timestamptz
   --
   ' Dive Basics
-  dive_period : text (morning | afternoon | night)
-  dive_start_type : text (boat | shore)
-  dive_type : text (reef | wall | drift | cave | deep | shipwreck | other)
-  dive_purpose : text (recreational | training | research | restoration | other)
+  dive_period : DivePeriod
+  dive_start_type : DiveStartType
+  dive_type : DiveType
+  dive_purpose : DivePurpose
   --
   ' Measurements
   max_depth_ft : numeric
@@ -29,15 +31,15 @@ entity "dive_logs" as dive_logs {
   location : geography(Point,4326)
   --
   ' Environmental
-  weather : text (sunny | partly cloudy | cloudy | rainy | windy | foggy)
+  weather : Weather
   air_temp_f : numeric
   surface_temp_f : numeric
   bottom_temp_f : numeric
-  water_type : text (salt | fresh | brackish)
-  body_of_water : text (ocean | lake | river | quarry | cenote)
-  wave : text (none | small | medium | large)
-  current : text (none | light | moderate | strong)
-  surge : text (none | light | moderate | strong)
+  water_type : WaterType
+  body_of_water : BodyOfWater
+  wave : Condition
+  current : Condition
+  surge : Condition
   --
   ' Equipment
   equipment : jsonb
@@ -48,29 +50,27 @@ entity "dive_logs" as dive_logs {
   ' People/Experience
   buddy : text
   dive_center : text
-  experience_feeling : text (amazing | good | average | poor)
+  experience_feeling : ExperienceFeeling
   experience_rating : integer (1 to 5)
   public_notes : text
   private_notes : text
   --
   ' Visibility
-  log_visibility : text (public | private | unlisted)
-  --
-  ' Meta
-  created_at : timestamptz
-  updated_at : timestamptz
+  log_visibility : Visibility
 }
 
 entity "media" as media {
-  * id : uuid
+  * id : uuid PK
   * user_id : uuid FK
-  * status : text (pending | uploading | uploaded | processing | processed | failed)
+  * status : MediaStatus
   * storage_key : text
-  * type : text (image | video)
+  * type : MediaType
+  * created_at : timestamptz
+  * updated_at : timestamptz
   --
   ' Associations
   dive_log_id : uuid FK (nullable)
-  ml_tagging_status : text (pending | success | failed)
+  ml_tagging_status : TaggingStatus
   --
   ' Media Details
   mime_type : text
@@ -84,19 +84,19 @@ entity "media" as media {
   description : text
   --
   ' Visibility
-  media_visibility : text (public | private | unlisted)
+  media_visibility : Visibility
   --
   ' Meta
   error_details : text
-  created_at : timestamptz
-  updated_at : timestamptz
 }
 
 entity "species" as species {
-  * id : uuid
+  * id : uuid PK
   * ml_label : text UNIQUE
   * scientific_name : text
   * common_name : text
+  * created_at : timestamptz
+  * updated_at : timestamptz
   --
   ' Species Details
   slug : text UNIQUE
@@ -105,32 +105,27 @@ entity "species" as species {
   locations : jsonb
   taxonomy : jsonb
   image_urls : jsonb
-  --
-  ' Meta
-  created_at : timestamptz
-  updated_at : timestamptz
 }
 
 entity "media_species_tags" as tags {
-  * media_id : uuid FK
-  * species_id : uuid FK
-  * source : text (ml | user)
+  * media_id : uuid FK PK
+  * species_id : uuid FK PK
+  * UNIQUE (media_id, species_id)
+  * source : TagSource
+  * tagged_at : timestamptz
   --
-  UNIQUE (media_id, species_id)
   model_confidence : numeric
-  tagged_at : timestamptz
 }
 
 entity "scubadex_entries" as scubadex {
-  * id : uuid
+  * id : uuid PK
   * user_id : uuid FK
   * species_id : uuid FK
-  --
-  UNIQUE (user_id, species_id)
-  times_encountered : integer
-  date_first_encountered : date
-  created_at : timestamptz
-  updated_at : timestamptz
+  * UNIQUE (user_id, species_id)
+  * created_at : timestamptz
+  * updated_at : timestamptz
+  * times_encountered : integer
+  * date_first_encountered : date
 }
 
 ' Relationships
@@ -139,7 +134,6 @@ users ||--o{ media : "uploads"
 dive_logs ||--o{ media : "associated with"
 media ||--o{ tags : "has tags"
 species ||--o{ tags : "tagged in"
-users ||--o| tags : "tags (optional)"
 users ||--o{ scubadex : "collection"
 species ||--o{ scubadex : "collected by"
 
