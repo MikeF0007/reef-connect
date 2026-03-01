@@ -9,11 +9,14 @@ Exports:
     DiveLogRepository: Implementation of IDiveLogRepository.
     IMediaRepository: Protocol for media data access operations.
     MediaRepository: Implementation of IMediaRepository.
+    ISpeciesTagRepository: Protocol for species tag data access operations.
+    SpeciesTagRepository: Implementation of ISpeciesTagRepository.
 """
 
 from common.db.repositories.interfaces import (
     IDiveLogRepository,
     IMediaRepository,
+    ISpeciesTagRepository,
     IUserCertificationRepository,
     IUserRepository,
 )
@@ -23,6 +26,7 @@ from common.db.repositories.user_certification_repository import (
 from common.db.repositories.user_repository import UserRepository
 from common.db.repositories.dive_log_repository import DiveLogRepository
 from common.db.repositories.media_repository import MediaRepository
+from common.db.repositories.species_tag_repository import SpeciesTagRepository
 
 __all__ = [
     "IUserRepository",
@@ -33,4 +37,6 @@ __all__ = [
     "DiveLogRepository",
     "IMediaRepository",
     "MediaRepository",
+    "ISpeciesTagRepository",
+    "SpeciesTagRepository",
 ]
