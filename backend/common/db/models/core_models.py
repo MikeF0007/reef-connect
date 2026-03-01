@@ -1,10 +1,7 @@
-"""
-Core data SQLAlchemy models.
+"""Module providing core data SQLAlchemy models.
 
-This module defines the main business models for dive logging,
-media management, and species tracking.
-
-Models are kept 1:1 with the ER diagrams in designs/db_schema/.
+This module defines the main business models for dive logging, media management, and species
+tracking.
 """
 
 import uuid
@@ -51,7 +48,7 @@ from common.types import (
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base
+from .base_model import Base
 from common.db.db_types import PointGeography
 
 
@@ -72,7 +69,7 @@ class DiveLog(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -159,7 +156,7 @@ class Media(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     status: Mapped[str] = mapped_column(
         SQLEnum(MediaStatus), nullable=False, default=MediaStatus.PENDING
@@ -306,7 +303,7 @@ class ScubadexEntry(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     species_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("species.id"), nullable=False, index=True

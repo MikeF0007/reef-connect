@@ -14,7 +14,13 @@ where = ["."]
 include = ["common*", "api_service*"]
 
 [tool.pytest.ini_options]
-testpaths = ["api_service/tests", "common/tests"]
+testpaths = [
+    "api_service/tests",
+    "common/tests",
+    "media_worker/tests",
+    "materialized_data_worker/tests",
+    "ml_tagger_worker/tests",
+]
 pythonpath = ["."]
 asyncio_mode = "auto"
 

@@ -16,7 +16,7 @@ sys.path.insert(0, backend_dir)
 
 # Import our database configuration
 from common.config import settings
-from common.db.models.base import Base
+from common.db.models.base_model import Base
 
 # Import all models to ensure they're registered with SQLAlchemy metadata
 from common.db.models import (

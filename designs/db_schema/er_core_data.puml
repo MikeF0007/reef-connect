@@ -129,12 +129,12 @@ entity "scubadex_entries" as scubadex {
 }
 
 ' Relationships
-users ||--o{ dive_logs : "owns"
-users ||--o{ media : "uploads"
+users ||--o{ dive_logs : "owns (CASCADE)"
+users ||--o{ media : "uploads (CASCADE)"
 dive_logs ||--o{ media : "associated with"
-media ||--o{ tags : "has tags"
+media ||--o{ tags : "has tags (CASCADE)"
 species ||--o{ tags : "tagged in"
-users ||--o{ scubadex : "collection"
+users ||--o{ scubadex : "collection (CASCADE)"
 species ||--o{ scubadex : "collected by"
 
 note right of dive_logs

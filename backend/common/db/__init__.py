@@ -23,7 +23,7 @@ if "alembic" not in sys.argv[0] if sys.argv else False:
         sync_engine,
     )
 
-from common.db.models.base import Base
+from common.db.models.base_model import Base
 
 __all__ = [
     "Base",

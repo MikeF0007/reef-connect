@@ -17,9 +17,15 @@ def test(session):
     session.chdir("backend")
 
     # Install dependencies (adjust based on your backend structure)
-    if (session.posargs and session.posargs[0] == "--install"):
-        session.install("-r", "requirements.txt")
-        session.install("pytest", "pytest-cov")
+    session.install("-r", "requirements.txt")
+    session.install("pytest", "pytest-cov")
+
+    # Filter out our custom args
+    pytest_args = []
+    for arg in session.posargs:
+        if arg == "--install":
+            continue  # Skip our custom arg
+        pytest_args.append(arg)
 
     # Run tests with coverage
     session.run(
@@ -27,7 +33,7 @@ def test(session):
         "--cov=.",
         "--cov-report=term-missing",
         "--cov-report=html",
-        *session.posargs
+        *pytest_args
     )
 
 

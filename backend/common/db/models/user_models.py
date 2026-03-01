@@ -1,10 +1,7 @@
-"""
-User-related SQLAlchemy models.
+"""Module providing user-related SQLAlchemy models.
 
-This module defines the User, UserProfile, UserSettings, PrivacySettings,
-and UserCertification models for authentication and user management.
-
-Models are kept 1:1 with the ER diagrams in designs/db_schema/.
+This module defines the User, UserProfile, UserSettings, PrivacySettings, and UserCertification
+models for authentication and user management.
 """
 
 import uuid
@@ -31,7 +28,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from common.types import UnitSystem, Visibility
 from common.db.db_types import EncryptedText
-from .base import Base
+from .base_model import Base
 
 
 class User(Base):

@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from common.config import settings
 from common.db.database import close_db
-from common.db.models.base import Base
+from common.db.models.base_model import Base
 
 
 async def test_db_setup():

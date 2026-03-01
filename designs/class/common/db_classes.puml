@@ -9,8 +9,10 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         -- methods --
         + create_dive_log(dive_log: DiveLog): UUID -- Creates a new dive log entry and returns its
             ID.
-        + get_dive_logs(dive_log_ids: list[UUID]): list[DiveLog] -- Retrieves dive logs by their IDs
-            in a single query for efficiency. Returns only the dive logs that exist.
+        + get_dive_log_by_id(dive_log_id: UUID): Optional[DiveLog] -- Retrieves a single dive log
+            by its ID, returning None if not found.
+        + get_dive_logs_by_ids(dive_log_ids: list[UUID]): list[DiveLog] -- Retrieves dive logs by
+            their IDs in a single query for efficiency. Returns only the dive logs that exist.
         + get_dive_logs_by_user(user_id: UUID, sort_by: Optional[str], order: Optional[str],
             limit: Optional[int], offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a
             user with optional sorting (date, maxDepth, duration, location, experienceRating) and
@@ -21,14 +23,15 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             (asc, desc), with optional pagination. Defaults to sort by date descending.
         + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
             sort_by: Optional[str], order: Optional[str], limit: Optional[int],
-            offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a user within a specific
-            date range with optional sorting (date, maxDepth, duration, location, experienceRating)
-            and ordering (asc, desc), with optional pagination. Defaults to sort by date descending.
+            offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a user within a
+            specific date range with optional sorting (date, maxDepth, duration, location,
+            experienceRating) and ordering (asc, desc), with optional pagination. Defaults to sort
+            by date descending.
         + update_dive_log(dive_log_id: UUID, updates: dict): void -- Updates specific fields of a
             dive log. Only the fields provided in the updates dict will be modified. To clear a
             field, set its value to null in the updates dict.
-        + delete_dive_log(dive_log_id: UUID): void -- Deletes a dive log by its ID, along with any
-            associated media items (cascading delete).
+        + delete_dive_log(dive_log_id: UUID): void -- Deletes a dive log by its ID. Associated
+            media items survive with their dive_log_id set to NULL.
     }
 
     interface IMediaRepository {
@@ -36,9 +39,11 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         Defines the contract for media data management operations.
         -- methods --
         + create_media(media: Media): UUID -- Creates a new media entry in the database with the
-            initial status of 'PENDING' and returns the its ID.
-        + get_media(media_ids: list[UUID]): list[Media] -- Retrieves media items by their IDs in a
-            single query for efficiency. Returns only the media that exist.
+            initial status of 'PENDING' and returns its ID.
+        + get_media_by_id(media_id: UUID): Optional[Media] -- Retrieves a single media item by its
+            ID, returning None if not found.
+        + get_media_by_ids(media_ids: list[UUID]): list[Media] -- Retrieves media items by their IDs
+            in a single query for efficiency. Returns only the media that exist.
         + get_media_by_user(user_id: UUID, media_type: Optional[str], limit: Optional[int],
             offset: Optional[int]): list[Media] -- Retrieves media items for a user, optionally
             filtered by media type and paginated.
@@ -48,6 +53,8 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         + get_media_by_species_tag(user_id: UUID, species_id: UUID, media_type: Optional[str],
             limit: Optional[int], offset: Optional[int]): list[Media] -- Retrieves media items for
             a user filtered by species tag and optionally by media type.
+        + get_species_tags_for_media(media_id: UUID): list[SpeciesTag] -- Retrieves all species tags
+            associated with a media item.
         + update_media_status(media_id: UUID, status: str): void -- Updates the processing status of
             a media item (e.g., 'PENDING'/'UPLOADING').
         + update_media_details(media_id: UUID, details: dict): void -- Updates specific fields of
@@ -86,8 +93,10 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         -- description --
         Defines the contract for species catalog read/search operations.
         -- methods --
-        + get_species(species_ids: list[UUID]): list[Species] -- Retrieves multiple species by their
-            IDs in a single query for efficiency. Returns only the species that exist.
+        + get_species_by_id(species_id: UUID): Optional[Species] -- Retrieves a single species by
+            its ID, returning None if not found.
+        + get_species_by_ids(species_ids: list[UUID]): list[Species] -- Retrieves multiple species
+            by their IDs in a single query for efficiency. Returns only the species that exist.
         + get_all_species(limit: Optional[int], offset: Optional[int]): list[Species] -- Retrieves
             all species in the catalog with optional pagination, ordered by common name.
         + get_species_by_category(category: str, limit: Optional[int],
@@ -117,9 +126,9 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             by UNIQUE constraint on media_id, species_id).
         + check_tag_exists(media_id: UUID, species_id: UUID): bool -- Checks if a tag already exists
             for the given media and species combination.
-        + get_tags(list[tuple[media_id: UUID, species_id: UUID]]): list[SpeciesTag] -- Retrieves
-            tags by their composite key (media_id, species_id) in a single query for efficiency.
-            Returns only the tags that exist.
+        + get_tags_by_ids(tag_ids: list[tuple[UUID, UUID]]): list[SpeciesTag] -- Retrieves tags by
+            their composite key (media_id, species_id) in a single query for efficiency. Returns
+            only the tags that exist.
         + get_tags_for_media(media_id: UUID): list[SpeciesTag] -- Retrieves all species tags
             associated with a media item, ordered by tagged_at descending.
         + get_user_tags_for_species(user_id: UUID, species_id: UUID): list[SpeciesTag] -- Retrieves
@@ -132,37 +141,53 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
 
     interface IUserRepository {
         -- description --
-        Defines the contract for user profile, settings, and privacy data management operations.
+        Defines the contract for user, profile, settings, and privacy data management operations.
         -- methods --
-        + get_users(user_ids: list[UUID]): list[User] -- Retrieves multiple users by their IDs in a
-            single query for efficiency. Returns only the users that exist.
+        + create_user(email: str, username: str, password_hash: str): UUID -- Creates a new user
+            and returns its ID.
+        + get_user_by_id(user_id: UUID): Optional[User] -- Retrieves a single user by their ID,
+            returning None if not found.
+        + get_users_by_ids(user_ids: list[UUID]): list[User] -- Retrieves multiple users by their
+            IDs in a single query for efficiency. Returns only the users that exist.
         + get_user_by_email(email: str): Optional[User] -- Retrieves a user by their email address,
             returning None if not found.
         + get_user_by_username(username: str): Optional[User] -- Retrieves a user by their username,
             returning None if not found.
+        + delete_user(user_id: UUID): bool -- Deletes a user by their ID, returning True if deleted
+            or False if not found. Related profile, settings, privacy settings, certifications,
+            dive logs, media (and their species tags), and scubadex entries are cascade-deleted.
+        + create_user_profile(user_id: UUID, profile_data: dict): UUID -- Creates a user profile
+            and returns its ID. Accepts optional fields: bio, first_name, last_name, location,
+            website_url, birth_date.
         + get_user_profile(user_id: UUID): Optional[UserProfile] -- Retrieves a user's profile by
             their user ID, returning None if not found.
         + get_user_with_profile(user_id: UUID): Optional[tuple[User, UserProfile, PrivacySettings]]
             -- Retrieves a user along with their profile and privacy settings in a single
             query for efficiency, returning None if user not found.
-        + get_user_privacy_settings(user_id: UUID): Optional[PrivacySettings] -- Retrieves a user's
-            privacy settings, returning None if not found.
-        + get_user_settings(user_id: UUID): Optional[UserSettings] -- Retrieves a user's
-            application settings, returning None if not found.
         + update_user_profile(user_id: UUID, updates: dict): void -- Updates specific fields of a
             user's profile. Only the fields provided in the updates dict will be modified. To clear
-            a field, set its value to null in the updates dict. Supported fields include username,
-            bio, avatar_url, avatar_storage_key, first_name, last_name, location, website_url, and
+            a field, set its value to null in the updates dict. Supported fields include bio,
+            avatar_url, avatar_storage_key, first_name, last_name, location, website_url, and
             birth_date.
+        + create_user_settings(user_id: UUID, settings_data: dict): UUID -- Creates user settings
+            with defaults and returns its ID. Accepts optional overrides: preferred_units, timezone,
+            language.
+        + get_user_settings(user_id: UUID): Optional[UserSettings] -- Retrieves a user's
+            application settings, returning None if not found.
+        + update_user_settings(user_id: UUID, settings: dict): void -- Updates specific application
+            settings for a user. Only the fields provided in the settings dict will be modified.
+            To clear a setting (reset to default), set its value to null in the settings dict.
+            Supported fields include preferred_units, timezone, and language.
+        + create_user_privacy_settings(user_id: UUID, privacy_data: dict): UUID -- Creates privacy
+            settings with defaults and returns its ID. Accepts optional visibility overrides:
+            profile_visibility, dive_logs_visibility, media_visibility, stats_visibility.
+        + get_user_privacy_settings(user_id: UUID): Optional[PrivacySettings] -- Retrieves a user's
+            privacy settings, returning None if not found.
         + update_user_privacy_settings(user_id: UUID, settings: dict): void -- Updates specific
             privacy settings for a user. Only the fields provided in the settings dict will be
             modified. To clear a setting (reset to default 'public' visibility), set its value to
             null in the settings dict. Supported fields include profile_visibility,
             dive_logs_visibility, media_visibility, and stats_visibility.
-        + update_user_settings(user_id: UUID, settings: dict): void -- Updates specific application
-            settings for a user. Only the fields provided in the settings dict will be modified.
-            To clear a setting (reset to default), set its value to null in the settings dict.
-            Supported fields include preferred_units, timezone, and language.
         + search_users(query: str, limit: Optional[int], offset: Optional[int]): list[User] --
             Searches for users by username or email (partial match), returning a paginated list of
             matching users.
@@ -172,10 +197,13 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         -- description --
         Defines the contract for user certification data management operations.
         -- methods --
+        + get_certification_by_id(certification_id: UUID): Optional[UserCertification] -- Retrieves
+            a single certification by its ID, returning None if not found.
         + get_user_certifications(user_id: UUID): list[UserCertification] -- Retrieves all
             certifications for a user, ordered by issued_date descending.
-        + add_user_certification(user_id: UUID, certification: UserCertification): UUID -- Adds a new
-            certification for a user and returns the certification ID.
+        + add_user_certification(user_id: UUID, certification_name: str, issuer: str,
+            issued_date: date, **kwargs: object): UUID -- Adds a new certification for a user and
+            returns the certification ID.
         + update_user_certification(certification_id: UUID, updates: dict): void -- Updates specific
             fields of a user's certification. Only the fields provided in the updates dict will be
             modified. To clear a field, set its value to null in the updates dict.
@@ -184,37 +212,26 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
     }
 
     ' ---- Database-based implementation classes ---- '
-
-    class DatabaseClient {
-        -- description --
-        Database client for common connection and session lifecycle management.
-        -- methods --
-        + get_session(): AsyncSession -- Returns a new database session for performing operations.
-        + begin_transaction(): AsyncSession -- Starts a new transaction and returns the session.
-        + commit_transaction(session: AsyncSession): void -- Commits the given transaction session.
-        + rollback_transaction(session: AsyncSession): void -- Rolls back the given transaction
-            session.
-        + close_session(session: AsyncSession): void -- Closes the given database session to free
-            resources.
-        + execute_in_transaction(operation: callable): Result -- Convenience method to execute a
-            database operation within a transaction context, automatically handling
-            commit/rollback and session lifecycle.
-    }
+    ' NOTE: All interface-related methods in these classes are asynchronous'
 
     class DiveLogRepository {
         -- description --
-        Database-backed implementation of dive log data management operations using database
-        sessions. All methods have functionality described in interface with implementation based
-        around database operations.
+        Database-backed implementation of dive log data management operations. All methods have
+        functionality described in interface with implementation based around async SQLAlchemy
+        queries.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to dive log data.
+        - session: AsyncSession  -- AsyncSession for database operations. This session is used for
+            all method calls, ensuring transaction consistency across operations.
         -- methods --
+        + __init__(session: AsyncSession) -- Repository instance is initialized with an AsyncSession
+            for database operations.
         + create_dive_log(dive_log: DiveLog): UUID
-        + get_dive_logs(dive_log_ids: list[UUID]): list[DiveLog]
+        + get_dive_log_by_id(dive_log_id: UUID): Optional[DiveLog]
+        + get_dive_logs_by_ids(dive_log_ids: list[UUID]): list[DiveLog]
         + get_dive_logs_by_user(user_id: UUID, sort_by: Optional[str], order: Optional[str],
-            limit: Optional[int], limit: Optional[int], offset: Optional[int]): list[DiveLog]
-        + get_dive_logs_by_location(location: str, limit: Optional[int],
-            offset: Optional[int]): list[DiveLog]
+            limit: Optional[int], offset: Optional[int]): list[DiveLog]
+        + get_dive_logs_by_location(location: str, sort_by: Optional[str], order: Optional[str],
+            limit: Optional[int], offset: Optional[int]): list[DiveLog]
         + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
             sort_by: Optional[str], order: Optional[str], limit: Optional[int],
             offset: Optional[int]): list[DiveLog]
@@ -224,20 +241,23 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
 
     class MediaRepository {
         -- description --
-        Database-backed implementation of media data management operations using database sessions.
-        All methods have functionality described in interface with implementation based around
-        database operations.
+        Database-backed implementation of media data management operations. All methods have
+        functionality described in interface with implementation based around async SQLAlchemy
+        queries.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to media data.
+        - session: AsyncSession  -- AsyncSession for database operations. This session is used for
+            all method calls, ensuring transaction consistency across operations.
         -- methods --
+        + __init__(session: AsyncSession) -- Repository instance is initialized with an AsyncSession
+            for database operations.
         + create_media(media: Media): UUID
-        + get_media(media_ids: list[UUID]): list[Media]
+        + get_media_by_id(media_id: UUID): Optional[Media]
+        + get_media_by_ids(media_ids: list[UUID]): list[Media]
         + get_media_by_user(user_id: UUID, media_type: Optional[str], limit: Optional[int],
             offset: Optional[int]): list[Media]
         + get_media_by_dive_log(dive_log_id: UUID, media_type: Optional[str]): list[Media]
         + get_media_by_species_tag(user_id: UUID, species_id: UUID, media_type: Optional[str],
-            limit: Optional[int], offset: Optional[int]): list[Media] -- Retrieves media items for a
-            user filtered by species tag and optionally by media type.
+            limit: Optional[int], offset: Optional[int]): list[Media]
         + get_species_tags_for_media(media_id: UUID): list[SpeciesTag]
         + update_media_status(media_id: UUID, status: str): void
         + update_media_details(media_id: UUID, details: dict): void
@@ -248,11 +268,15 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
         -- description --
         Database-backed implementation of ScubaDex materialized data management with reconciliation
         capabilities. All methods have functionality described in interface with implementation
-        based around database operations.
+        based around async SQLAlchemy queries.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to materialized data.
+        - session: AsyncSession  -- AsyncSession for database operations. This session is used for
+            all method calls, ensuring transaction consistency across operations.
         - media_repo: IMediaRepository -- For reconciliation with species tags.
         -- methods --
+        + __init__(session: AsyncSession, media_repo: IMediaRepository) -- Repository instance is
+            initialized with an AsyncSession for database operations and a reference to the
+            MediaRepository for reconciliation purposes.
         + record_species_encounter(user_id: UUID, species_id: UUID): void
         + remove_species_encounter(user_id: UUID, species_id: UUID): void
         + clear_species_encounters(user_id: UUID, species_id: UUID): void
@@ -264,14 +288,18 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
 
     class SpeciesRepository {
         -- description --
-        Database-backed implementation of species catalog data management and search operations
-        using database sessions. All methods have functionality described in interface with
-        implementation based around database operations. Handles the species table and provides
-        optimized search capabilities including full-text search on common/scientific names.
+        Database-backed implementation of species catalog data management and search operations.
+        All methods have functionality described in interface with implementation based around
+        async SQLAlchemy queries. Handles the species table and provides optimized search
+        capabilities including full-text search on common/scientific names.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to species catalog data.
+        - session: AsyncSession  -- AsyncSession for database operations. This session is used for
+            all method calls, ensuring transaction consistency across operations.
         -- methods --
-        + get_species(species_ids: list[UUID]): list[Species]
+        + __init__(session: AsyncSession) -- Repository instance is initialized with an AsyncSession
+            for database operations.
+        + get_species_by_id(species_id: UUID): Optional[Species]
+        + get_species_by_ids(species_ids: list[UUID]): list[Species]
         + get_all_species(limit: Optional[int], offset: Optional[int]): list[Species]
         + get_species_by_category(category: str, limit: Optional[int],
             offset: Optional[int]): list[Species]
@@ -283,17 +311,20 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
 
     class SpeciesTagRepository {
         -- description --
-        Database-backed implementation of species tag data management operations using database
-        sessions. All methods have functionality described in interface with implementation based
-        around database operations. Handles the media_species_tags junction table for the
-        many-to-many relationship between media and species.
+        Database-backed implementation of species tag data management operations. All methods have
+        functionality described in interface with implementation based around async SQLAlchemy
+        queries. Handles the media_species_tags junction table for the many-to-many relationship
+        between media and species.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to species tag data.
+        - session: AsyncSession  -- AsyncSession for database operations. This session is used for
+            all method calls, ensuring transaction consistency across operations.
         -- methods --
+        + __init__(session: AsyncSession) -- Repository instance is initialized with an AsyncSession
+            for database operations.
         + create_tag(media_id: UUID, species_id: UUID, source: str,
             model_confidence: Optional[float]): SpeciesTag
         + check_tag_exists(media_id: UUID, species_id: UUID): bool
-        + get_tags(list[tuple[media_id: UUID, species_id: UUID]]): list[SpeciesTag]
+        + get_tags_by_ids(tag_ids: list[tuple[UUID, UUID]]): list[SpeciesTag]
         + get_tags_for_media(media_id: UUID): list[SpeciesTag]
         + get_user_tags_for_species(user_id: UUID, species_id: UUID): list[SpeciesTag]
         + delete_tag(media_id: UUID, species_id: UUID): bool
@@ -303,33 +334,46 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
     class UserRepository {
         -- description --
         Database-backed implementation of user, profile, settings, and privacy data management
-        operations using database sessions. All methods have functionality described in interface
-        with implementation based around database operations. Handles the users, user_profiles,
-        privacy_settings, and user_settings tables.
+        operations. All methods have functionality described in interface with implementation
+        based around async SQLAlchemy queries. Handles the users, user_profiles, privacy_settings,
+        and user_settings tables.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to user-related data.
+        - session: AsyncSession  -- AsyncSession for database operations. This session is used for
+            all method calls, ensuring transaction consistency across operations.
         -- methods --
-        + get_users(user_ids: list[UUID]): list[User]
+        + __init__(session: AsyncSession) -- Repository instance is initialized with an AsyncSession
+            for database operations.
+        + create_user(email: str, username: str, password_hash: str): UUID
+        + get_user_by_id(user_id: UUID): Optional[User]
+        + get_users_by_ids(user_ids: list[UUID]): list[User]
         + get_user_by_email(email: str): Optional[User]
         + get_user_by_username(username: str): Optional[User]
+        + delete_user(user_id: UUID): bool
+        + create_user_profile(user_id: UUID, profile_data: dict): UUID
         + get_user_profile(user_id: UUID): Optional[UserProfile]
         + get_user_with_profile(user_id: UUID): Optional[tuple[User, UserProfile, PrivacySettings]]
-        + get_user_privacy_settings(user_id: UUID): Optional[PrivacySettings]
-        + get_user_settings(user_id: UUID): Optional[UserSettings]
         + update_user_profile(user_id: UUID, updates: dict): void
-        + update_user_privacy_settings(user_id: UUID, settings: dict): void
+        + create_user_settings(user_id: UUID, settings_data: dict): UUID
+        + get_user_settings(user_id: UUID): Optional[UserSettings]
         + update_user_settings(user_id: UUID, settings: dict): void
+        + create_user_privacy_settings(user_id: UUID, privacy_data: dict): UUID
+        + get_user_privacy_settings(user_id: UUID): Optional[PrivacySettings]
+        + update_user_privacy_settings(user_id: UUID, settings: dict): void
         + search_users(query: str, limit: Optional[int], offset: Optional[int]): list[User]
     }
 
     class CertificationRepository {
         -- description --
-        Database-backed implementation of user certification data management operations using
-        database sessions. All methods have functionality described in interface with implementation
-        based around database operations. Handles the user_certifications table.
+        Database-backed implementation of user certification data management operations. All
+        methods have functionality described in interface with implementation based around async
+        SQLAlchemy queries. Handles the user_certifications table.
         -- attributes --
-        - db_client: DatabaseClient -- For direct database access to certification data.
+        - session: AsyncSession  -- AsyncSession for database operations. This session is used for
+            all method calls, ensuring transaction consistency across operations.
         -- methods --
+        + __init__(session: AsyncSession) -- Repository instance is initialized with an AsyncSession
+            for database operations.
+        + get_certification_by_id(certification_id: UUID): Optional[UserCertification]
         + get_user_certifications(user_id: UUID): list[UserCertification]
         + add_user_certification(user_id: UUID, certification: UserCertification): UUID
         + update_user_certification(certification_id: UUID, updates: dict): void
@@ -345,14 +389,6 @@ ISpeciesRepository <|.. SpeciesRepository
 ISpeciesTagRepository <|.. SpeciesTagRepository
 ICertificationRepository <|.. CertificationRepository
 IUserRepository <|.. UserRepository
-
-DiveLogRepository --> DatabaseClient : uses
-MediaRepository --> DatabaseClient : uses
-ScubaDexRepository --> DatabaseClient : uses
-SpeciesRepository --> DatabaseClient : uses
-SpeciesTagRepository --> DatabaseClient : uses
-CertificationRepository --> DatabaseClient : uses
-UserRepository --> DatabaseClient : uses
 
 ScubaDexRepository --> IMediaRepository : uses for species tags access during reconciliation
 

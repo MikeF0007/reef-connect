@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import Session, sessionmaker
 
 from common.config import settings
-from common.db.models.base import Base
+from common.db.models.base_model import Base
 
 
 # ============================================================================
