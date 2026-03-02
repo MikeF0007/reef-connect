@@ -9,6 +9,7 @@ Exports:
     IDiveLogRepository: Protocol for dive log data access.
     IMediaRepository: Protocol for media and species tag data access.
     ISpeciesTagRepository: Protocol for species tag data access.
+    ISpeciesRepository: Protocol for species catalog read and search operations.
 """
 
 from common.db.repositories.interfaces.i_certification_repository import (
@@ -16,6 +17,7 @@ from common.db.repositories.interfaces.i_certification_repository import (
 )
 from common.db.repositories.interfaces.i_dive_log_repository import IDiveLogRepository
 from common.db.repositories.interfaces.i_media_repository import IMediaRepository
+from common.db.repositories.interfaces.i_species_repository import ISpeciesRepository
 from common.db.repositories.interfaces.i_species_tag_repository import (
     ISpeciesTagRepository,
 )
@@ -27,4 +29,5 @@ __all__ = [
     "IDiveLogRepository",
     "IMediaRepository",
     "ISpeciesTagRepository",
+    "ISpeciesRepository",
 ]

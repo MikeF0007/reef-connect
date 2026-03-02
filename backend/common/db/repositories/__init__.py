@@ -11,11 +11,14 @@ Exports:
     MediaRepository: Implementation of IMediaRepository.
     ISpeciesTagRepository: Protocol for species tag data access operations.
     SpeciesTagRepository: Implementation of ISpeciesTagRepository.
+    ISpeciesRepository: Protocol for species catalog data access operations.
+    SpeciesRepository: Implementation of ISpeciesRepository.
 """
 
 from common.db.repositories.interfaces import (
     IDiveLogRepository,
     IMediaRepository,
+    ISpeciesRepository,
     ISpeciesTagRepository,
     IUserCertificationRepository,
     IUserRepository,
@@ -26,6 +29,7 @@ from common.db.repositories.user_certification_repository import (
 from common.db.repositories.user_repository import UserRepository
 from common.db.repositories.dive_log_repository import DiveLogRepository
 from common.db.repositories.media_repository import MediaRepository
+from common.db.repositories.species_repository import SpeciesRepository
 from common.db.repositories.species_tag_repository import SpeciesTagRepository
 
 __all__ = [
@@ -39,4 +43,6 @@ __all__ = [
     "MediaRepository",
     "ISpeciesTagRepository",
     "SpeciesTagRepository",
+    "ISpeciesRepository",
+    "SpeciesRepository",
 ]
