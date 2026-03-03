@@ -13,11 +13,14 @@ Exports:
     SpeciesTagRepository: Implementation of ISpeciesTagRepository.
     ISpeciesRepository: Protocol for species catalog data access operations.
     SpeciesRepository: Implementation of ISpeciesRepository.
+    IScubaDexRepository: Protocol for ScubaDex materialized data management.
+    ScubaDexRepository: Implementation of IScubaDexRepository.
 """
 
 from common.db.repositories.interfaces import (
     IDiveLogRepository,
     IMediaRepository,
+    IScubaDexRepository,
     ISpeciesRepository,
     ISpeciesTagRepository,
     IUserCertificationRepository,
@@ -29,6 +32,7 @@ from common.db.repositories.user_certification_repository import (
 from common.db.repositories.user_repository import UserRepository
 from common.db.repositories.dive_log_repository import DiveLogRepository
 from common.db.repositories.media_repository import MediaRepository
+from common.db.repositories.scubadex_repository import ScubaDexRepository
 from common.db.repositories.species_repository import SpeciesRepository
 from common.db.repositories.species_tag_repository import SpeciesTagRepository
 
@@ -45,4 +49,6 @@ __all__ = [
     "SpeciesTagRepository",
     "ISpeciesRepository",
     "SpeciesRepository",
+    "IScubaDexRepository",
+    "ScubaDexRepository",
 ]
