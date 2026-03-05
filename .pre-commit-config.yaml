@@ -16,7 +16,7 @@ repos:
         require_serial: true
         additional_dependencies: &ruff_version ["ruff==0.9.9"]
         minimum_pre_commit_version: "2.9.2"
-        stages: [commit]
+        stages: [pre-commit]
 
       - id: ruff-check
         name: ruff-check
@@ -29,7 +29,7 @@ repos:
         require_serial: true
         additional_dependencies: *ruff_version
         minimum_pre_commit_version: "2.9.2"
-        stages: [commit]
+        stages: [pre-commit]
         verbose: true
 
   # Frontend formatting with Prettier
@@ -39,7 +39,7 @@ repos:
       - id: prettier
         types_or: [javascript, jsx, ts, tsx, json, css, scss, markdown]
         args: ["--write"]
-        stages: [commit]
+        stages: [pre-commit]
 
   # General file checks (works for all languages)
   - repo: https://github.com/pre-commit/pre-commit-hooks

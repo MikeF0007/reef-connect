@@ -18,6 +18,7 @@ def test(session):
 
     # Install dependencies (adjust based on your backend structure)
     session.install("-r", "requirements.txt")
+    session.install("-r", "api_service/requirements.txt")
     session.install("pytest", "pytest-cov")
 
     # Filter out our custom args
@@ -28,13 +29,7 @@ def test(session):
         pytest_args.append(arg)
 
     # Run tests with coverage
-    session.run(
-        "pytest",
-        "--cov=.",
-        "--cov-report=term-missing",
-        "--cov-report=html",
-        *pytest_args
-    )
+    session.run("pytest", "--cov=.", "--cov-report=term-missing", "--cov-report=html", *pytest_args)
 
 
 @nox.session(python=SUPPORTED_PYTHON_VERSIONS[0])

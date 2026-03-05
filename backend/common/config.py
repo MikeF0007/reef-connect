@@ -9,9 +9,9 @@ import os
 import secrets
 
 try:
-    from typing import Literal, Union, List
+    from typing import List, Literal, Union
 except ImportError:
-    from typing_extensions import Literal, Union, List
+    from typing_extensions import List, Literal, Union
 
 from pydantic import Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict

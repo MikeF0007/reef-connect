@@ -10,18 +10,20 @@ from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy import (
-    BigInteger,
-    Date,
     DECIMAL,
+    JSON,
+    BigInteger,
+    CheckConstraint,
+    Date,
     DateTime,
+    ForeignKey,
     Integer,
     String,
     Text,
-    func,
-    JSON,
-    ForeignKey,
-    CheckConstraint,
     UniqueConstraint,
+    func,
+)
+from sqlalchemy import (
     Enum as SQLEnum,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -29,27 +31,27 @@ from sqlalchemy.dialects.postgresql import UUID
 # Use JSON for SQLite compatibility (JSONB not supported in SQLite)
 JSON_TYPE = JSON
 
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from common.db.db_types import PointGeography
 from common.types import (
-    DivePeriod,
-    DiveStartType,
-    DiveType,
-    DivePurpose,
-    Weather,
-    WaterType,
     BodyOfWater,
     Condition,
+    DivePeriod,
+    DivePurpose,
+    DiveStartType,
+    DiveType,
     ExperienceFeeling,
-    Visibility,
     MediaStatus,
     MediaType,
     MLTaggingStatus,
     SpeciesTagSource,
+    Visibility,
+    WaterType,
+    Weather,
 )
 
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from .base_model import Base
-from common.db.db_types import PointGeography
 
 
 class DiveLog(Base):
@@ -64,9 +66,7 @@ class DiveLog(Base):
     __tablename__ = "dive_logs"
 
     # --- Required fields ---
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -89,9 +89,7 @@ class DiveLog(Base):
 
     # --- Dive Basics ---
     dive_period: Mapped[Optional[DivePeriod]] = mapped_column(SQLEnum(DivePeriod))
-    dive_start_type: Mapped[Optional[DiveStartType]] = mapped_column(
-        SQLEnum(DiveStartType)
-    )
+    dive_start_type: Mapped[Optional[DiveStartType]] = mapped_column(SQLEnum(DiveStartType))
     dive_type: Mapped[Optional[DiveType]] = mapped_column(SQLEnum(DiveType))
     dive_purpose: Mapped[Optional[DivePurpose]] = mapped_column(SQLEnum(DivePurpose))
 
@@ -152,9 +150,7 @@ class Media(Base):
     __tablename__ = "media"
 
     # --- Required fields ---
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -180,9 +176,7 @@ class Media(Base):
         nullable=True,
         index=True,
     )
-    ml_tagging_status: Mapped[Optional[MLTaggingStatus]] = mapped_column(
-        SQLEnum(MLTaggingStatus)
-    )
+    ml_tagging_status: Mapped[Optional[MLTaggingStatus]] = mapped_column(SQLEnum(MLTaggingStatus))
 
     # --- Media Details ---
     mime_type: Mapped[Optional[str]] = mapped_column(Text)
@@ -203,9 +197,7 @@ class Media(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="media")
-    dive_log: Mapped[Optional["DiveLog"]] = relationship(
-        "DiveLog", back_populates="media"
-    )
+    dive_log: Mapped[Optional["DiveLog"]] = relationship("DiveLog", back_populates="media")
     species_tags: Mapped[List["MediaSpeciesTag"]] = relationship(
         "MediaSpeciesTag", back_populates="media", cascade="all, delete-orphan"
     )
@@ -220,9 +212,7 @@ class Species(Base):
 
     __tablename__ = "species"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     ml_label: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     scientific_name: Mapped[str] = mapped_column(Text, nullable=False)
     common_name: Mapped[str] = mapped_column(Text, nullable=False)
@@ -295,13 +285,9 @@ class ScubadexEntry(Base):
     """
 
     __tablename__ = "scubadex_entries"
-    __table_args__ = (
-        UniqueConstraint("user_id", "species_id", name="uq_scubadex_user_species"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "species_id", name="uq_scubadex_user_species"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -322,6 +308,4 @@ class ScubadexEntry(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="scubadex_entries")
-    species: Mapped["Species"] = relationship(
-        "Species", back_populates="scubadex_entries"
-    )
+    species: Mapped["Species"] = relationship("Species", back_populates="scubadex_entries")

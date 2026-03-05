@@ -36,11 +36,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from common.db.models.base_model import Base
+import common.db.models.core_models  # noqa: F401
 
 # Import all model modules so Base.metadata is fully populated
 import common.db.models.user_models  # noqa: F401
-import common.db.models.core_models  # noqa: F401
+from common.db.models.base_model import Base
 
 
 def create_test_engine() -> AsyncEngine:

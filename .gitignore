@@ -30,6 +30,11 @@ build/
 .coverage
 htmlcov/
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
 # Logs
 *.log
 npm-debug.log*

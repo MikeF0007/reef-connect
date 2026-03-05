@@ -20,9 +20,7 @@ from common.db.repositories.interfaces.i_dive_log_repository import IDiveLogRepo
 from common.db.repositories.interfaces.i_media_repository import IMediaRepository
 from common.db.repositories.interfaces.i_scubadex_repository import IScubaDexRepository
 from common.db.repositories.interfaces.i_species_repository import ISpeciesRepository
-from common.db.repositories.interfaces.i_species_tag_repository import (
-    ISpeciesTagRepository,
-)
+from common.db.repositories.interfaces.i_species_tag_repository import ISpeciesTagRepository
 from common.db.repositories.interfaces.i_user_repository import IUserRepository
 
 __all__ = [

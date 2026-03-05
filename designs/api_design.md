@@ -115,9 +115,13 @@
 
 ```typescript
 {
-  username?: string;
   bio?: string;
-  avatar?: string;
+  avatar_url?: string;
+  first_name?: string;
+  last_name?: string;
+  location?: string;
+  website_url?: string;
+  birth_date?: string; // ISO date string
 }
 ```
 
@@ -133,12 +137,54 @@
 
 ```typescript
 {
-  profileVisibility?: 'public' | 'private';
-  diveLogsVisibility?: 'public'| 'private';
-  mediaVisibility?: 'public' | 'private';
-  statsVisibility?: 'public' | 'private';
+  profileVisibility?: 'public' | 'private' | 'unlisted';
+  diveLogsVisibility?: 'public'| 'private' | 'unlisted';
+  mediaVisibility?: 'public' | 'private' | 'unlisted';
+  statsVisibility?: 'public' | 'private' | 'unlisted';
 }
 ```
+
+**Response:** `PrivacySettings`
+
+---
+
+### `GET /api/users/me/profile`
+
+**Purpose:** Get current user's own profile (full data including private fields)
+
+**Response:** `UserProfile`
+
+---
+
+### `GET /api/users/me/settings`
+
+**Purpose:** Get current user's settings
+
+**Response:** `UserSettings`
+
+---
+
+### `PATCH /api/users/me/settings`
+
+**Purpose:** Update current user's settings
+
+**Request Body:**
+
+```typescript
+{
+  preferred_units?: 'metric' | 'imperial';
+  timezone?: string;
+  language?: string;
+}
+```
+
+**Response:** `UserSettings`
+
+---
+
+### `GET /api/users/me/privacy`
+
+**Purpose:** Get current user's privacy settings
 
 **Response:** `PrivacySettings`
 
@@ -166,6 +212,7 @@
   expiryDate?: string; // ISO date string
   certificationNumber?: string;
   notes?: string;
+  verified?: boolean;
 }
 ```
 
@@ -358,7 +405,7 @@
 ```typescript
 {
   media: Media; // includes thumbnailUrl when available
-  uploadStatus: 'accepted' | 'rejected'; // validation feedback - was upload accepted?
+  uploadStatus: "accepted" | "rejected"; // validation feedback - was upload accepted?
 }
 ```
 

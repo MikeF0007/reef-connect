@@ -1,36 +1,20 @@
-import sys
 import os
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+import sys
 
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 
 # Add the backend directory to Python path
-backend_dir = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-)
+backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 sys.path.insert(0, backend_dir)
 
 # Import our database configuration
 from common.config import settings
-from common.db.models.base_model import Base
 
 # Import all models to ensure they're registered with SQLAlchemy metadata
-from common.db.models import (
-    DiveLog,
-    Media,
-    MediaSpeciesTag,
-    ScubadexEntry,
-    Species,
-    User,
-    UserProfile,
-    UserSettings,
-    PrivacySettings,
-    UserCertification,
-)
+from common.db.models.base_model import Base
 
 # from common.db.database import async_engine  # Don't import async engine for migrations
 

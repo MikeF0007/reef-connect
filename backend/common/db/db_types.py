@@ -1,12 +1,10 @@
-"""
-Custom SQLAlchemy types for the ReefConnect database models.
-"""
+"""Custom SQLAlchemy types for the ReefConnect database models."""
 
 import os
+
 from cryptography.fernet import Fernet
 from sqlalchemy import Text
-from sqlalchemy.types import UserDefinedType, TypeDecorator
-
+from sqlalchemy.types import TypeDecorator, UserDefinedType
 
 # Fernet requires a 32-byte URL-safe base64-encoded key.
 # Generate a real key for production with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
