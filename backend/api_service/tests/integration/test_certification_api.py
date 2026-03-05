@@ -30,7 +30,7 @@ class TestCertificationAPI:
             await async_session.refresh(cert)
         return certs
 
-    async def test_get_user_certifications(self, client, test_certifications):
+    async def test_get_my_certifications(self, client, test_certifications):
         """Test GET /users/me/certifications."""
         response = client.get("/users/me/certifications")
 
@@ -41,7 +41,7 @@ class TestCertificationAPI:
         assert "PADI Level 1" in names
         assert "PADI Level 2" in names
 
-    async def test_get_user_certifications_empty(self, client):
+    async def test_get_my_certifications_empty(self, client):
         """Test GET /users/me/certifications when no certifications exist."""
         response = client.get("/users/me/certifications")
 
@@ -49,7 +49,7 @@ class TestCertificationAPI:
         data = response.json()
         assert data == []
 
-    async def test_add_user_certification(self, client):
+    async def test_add_my_certification(self, client):
         """Test POST /users/me/certifications."""
         cert_data = {
             "certification_name": "PADI Open Water",
@@ -65,7 +65,19 @@ class TestCertificationAPI:
         assert data["issuer"] == "PADI"
         assert "id" in data
 
-    async def test_update_user_certification(self, client, test_certifications):
+    async def test_add_my_certification_invalid_data(self, client):
+        """Test POST /users/me/certifications with invalid data."""
+        invalid_data = {
+            "certification_name": "",  # Empty name
+            "issuer": "PADI",
+            "issued_date": "2023-01-01",
+            "expiry_date": "2026-01-01",
+        }
+        response = client.post("/users/me/certifications", json=invalid_data)
+
+        assert response.status_code == 422  # Validation error
+
+    async def test_update_my_certification(self, client, test_certifications):
         """Test PATCH /users/me/certifications/{certification_id}."""
         cert_id = test_certifications[0].id
         update_data = {"certification_name": "Updated Certification"}
@@ -76,7 +88,7 @@ class TestCertificationAPI:
         assert data["certification_name"] == "Updated Certification"
         assert data["issuer"] == "PADI"  # unchanged
 
-    async def test_update_certification_not_found(self, client):
+    async def test_update_my_certification_not_found(self, client):
         """Test PATCH /users/me/certifications/{certification_id} for nonexistent cert."""
         random_id = uuid4()
         update_data = {"certification_name": "Updated"}
@@ -85,7 +97,7 @@ class TestCertificationAPI:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
-    async def test_update_certification_wrong_user(self, client, async_session):
+    async def test_update_my_certification_wrong_user(self, client, async_session):
         """Test PATCH /users/me/certifications/{certification_id} for another user's cert."""
         other_user_id = uuid4()
         cert = UserCertification(
@@ -99,13 +111,13 @@ class TestCertificationAPI:
         async_session.add(cert)
         await async_session.commit()
 
-        update_data = {"certification_name": "Hacked"}
+        update_data = {"certification_name": "PADI Open Water"}
         response = client.patch(f"/users/me/certifications/{cert.id}", json=update_data)
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
-    async def test_delete_user_certification(self, client, test_certifications):
+    async def test_delete_my_certification(self, client, test_certifications):
         """Test DELETE /users/me/certifications/{certification_id}."""
         cert_id = test_certifications[0].id
         response = client.delete(f"/users/me/certifications/{cert_id}")
@@ -119,7 +131,7 @@ class TestCertificationAPI:
         assert len(data) == 1
         assert data[0]["id"] != str(cert_id)
 
-    async def test_delete_certification_not_found(self, client):
+    async def test_delete_my_certification_not_found(self, client):
         """Test DELETE /users/me/certifications/{certification_id} for nonexistent cert."""
         random_id = uuid4()
         response = client.delete(f"/users/me/certifications/{random_id}")
@@ -127,7 +139,7 @@ class TestCertificationAPI:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
-    async def test_delete_certification_wrong_user(self, client, async_session):
+    async def test_delete_my_certification_wrong_user(self, client, async_session):
         """Test DELETE /users/me/certifications/{certification_id} for another user's cert."""
         other_user_id = uuid4()
         cert = UserCertification(
@@ -146,7 +158,7 @@ class TestCertificationAPI:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
-    async def test_get_other_user_certifications(self, client, async_session):
+    async def test_get_user_certifications(self, client, async_session):
         """Test GET /users/{user_id}/certifications for another user."""
         other_user_id = uuid4()
         cert = UserCertification(
@@ -166,15 +178,3 @@ class TestCertificationAPI:
         data = response.json()
         assert len(data) == 1
         assert data[0]["certification_name"] == "Other User Cert"
-
-    async def test_invalid_certification_data(self, client):
-        """Test POST /users/me/certifications with invalid data."""
-        invalid_data = {
-            "certification_name": "",  # Empty name
-            "issuer": "PADI",
-            "issued_date": "2023-01-01",
-            "expiry_date": "2026-01-01",
-        }
-        response = client.post("/users/me/certifications", json=invalid_data)
-
-        assert response.status_code == 422  # Validation error

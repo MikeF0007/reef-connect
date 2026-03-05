@@ -10,7 +10,7 @@ from api_service.app.schemas.user_schemas import (
     UserProfileCreate,
     UserProfileUpdate,
     UserSettingsCreate,
-    UserSettingsUpdate,
+    UserSettingsUpdate
 )
 from api_service.app.services.user_service import UserService
 from common.types.enums import UnitSystem, Visibility
@@ -104,7 +104,7 @@ class TestUserService:
         assert result.first_name == "Michael"
         assert result.last_name == "Feldman"
 
-    async def test_get_user_profile_success(self, service, user_id, mock_profile, mocker):
+    async def test_get_user_profile(self, service, user_id, mock_profile, mocker):
         """Test getting a user profile successfully."""
         service.repository.get_user_profile = AsyncMock(return_value=mock_profile)
 
@@ -151,7 +151,7 @@ class TestUserService:
         )
         assert result.preferred_units == UnitSystem.IMPERIAL  # from mock
 
-    async def test_get_user_settings_success(self, service, user_id, mock_settings, mocker):
+    async def test_get_user_settings(self, service, user_id, mock_settings, mocker):
         """Test getting user settings successfully."""
         service.repository.get_user_settings = AsyncMock(return_value=mock_settings)
 
@@ -197,7 +197,7 @@ class TestUserService:
         )
         assert result.profile_visibility == Visibility.PUBLIC
 
-    async def test_get_privacy_settings_success(self, service, user_id, mock_privacy, mocker):
+    async def test_get_privacy_settings(self, service, user_id, mock_privacy, mocker):
         """Test getting privacy settings successfully."""
         service.repository.get_user_privacy_settings = AsyncMock(return_value=mock_privacy)
 

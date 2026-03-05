@@ -5,8 +5,13 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from api_service.app.schemas.user_schemas import UserCertificationCreate, UserCertificationUpdate
-from api_service.app.services.user_certification_service import UserCertificationService
+from api_service.app.schemas.user_schemas import (
+    UserCertificationCreate,
+    UserCertificationUpdate
+)
+from api_service.app.services.user_certification_service import (
+    UserCertificationService
+)
 
 
 class TestUserCertificationService:
@@ -80,7 +85,7 @@ class TestUserCertificationService:
         )
         assert result.certification_name == "PADI Open Water"
 
-    async def test_update_user_certification_success(
+    async def test_update_user_certification(
         self, service, user_id, cert_id, mock_certification, mocker
     ):
         """Test updating a certification successfully."""
@@ -118,7 +123,7 @@ class TestUserCertificationService:
         with pytest.raises(ValueError, match="Certification not found or access denied"):
             await service.update_user_certification(cert_id, user_id, data)
 
-    async def test_delete_user_certification_success(
+    async def test_delete_user_certification(
         self, service, user_id, cert_id, mock_certification, mocker
     ):
         """Test deleting a certification successfully."""
@@ -146,7 +151,4 @@ class TestUserCertificationService:
         service.repository.get_certification_by_id = AsyncMock(return_value=mock_certification)
 
         with pytest.raises(ValueError, match="Certification not found or access denied"):
-            await service.delete_user_certification(cert_id, user_id)
-        with pytest.raises(ValueError, match="Certification not found or access denied"):
-            await service.delete_user_certification(cert_id, user_id)
             await service.delete_user_certification(cert_id, user_id)
