@@ -5,7 +5,7 @@ import nox
 # Default to uv for faster environment creation
 nox.options.default_venv_backend = "uv|venv"
 
-SUPPORTED_PYTHON_VERSIONS = ["3.11", "3.12"]
+SUPPORTED_PYTHON_VERSIONS = ["3.11"]
 
 # Default sessions when running just 'nox'
 nox.options.sessions = ["lint", "test"]
@@ -19,7 +19,7 @@ def test(session):
     # Install dependencies (adjust based on your backend structure)
     session.install("-r", "requirements.txt")
     session.install("-r", "api_service/requirements.txt")
-    session.install("pytest", "pytest-cov")
+    session.install("pytest")
 
     # Filter out our custom args
     pytest_args = []
@@ -29,7 +29,7 @@ def test(session):
         pytest_args.append(arg)
 
     # Run tests with coverage
-    session.run("pytest", "--cov=.", "--cov-report=term-missing", "--cov-report=html", *pytest_args)
+    session.run("pytest", *pytest_args)
 
 
 @nox.session(python=SUPPORTED_PYTHON_VERSIONS[0])

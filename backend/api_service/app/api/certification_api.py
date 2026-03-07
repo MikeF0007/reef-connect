@@ -3,7 +3,9 @@
 from uuid import UUID
 
 from common.db.database import get_db_session
-from common.db.repositories.user_certification_repository import UserCertificationRepository
+from common.db.repositories.user_certification_repository import (
+    UserCertificationRepository,
+)
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,7 +45,7 @@ def get_user_certification_service(
     return UserCertificationService(repository)
 
 
-router = APIRouter(prefix="/users", tags=["certifications"])
+router = APIRouter(prefix="/api/users", tags=["certifications"])
 
 
 @router.get("/me/certifications", response_model=list[UserCertificationResponse])
@@ -63,7 +65,9 @@ async def get_my_certifications(
     return await service.get_user_certifications(user_id)
 
 
-@router.post("/me/certifications", response_model=UserCertificationResponse, status_code=201)
+@router.post(
+    "/me/certifications", response_model=UserCertificationResponse, status_code=201
+)
 async def add_my_certification(
     data: UserCertificationCreate,
     user_id: UUID = Depends(get_current_user_id),
@@ -82,7 +86,9 @@ async def add_my_certification(
     return await service.add_user_certification(user_id, data)
 
 
-@router.patch("/me/certifications/{certification_id}", response_model=UserCertificationResponse)
+@router.patch(
+    "/me/certifications/{certification_id}", response_model=UserCertificationResponse
+)
 async def update_my_certification(
     certification_id: UUID,
     data: UserCertificationUpdate,

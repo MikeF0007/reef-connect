@@ -34,6 +34,8 @@ class UserService:
 
     async def get_user_profile(self, user_id: UUID) -> UserProfileResponse:
         """Get user profile by user ID."""
+        # TODO: Implement privacy-aware filtering based on PrivacySettings:
+        # - Check the requested user's profile visibility settings
         profile = await self.repository.get_user_profile(user_id)
         if not profile:
             raise ValueError("User profile not found")
@@ -43,7 +45,9 @@ class UserService:
         self, user_id: UUID, data: UserProfileUpdate
     ) -> UserProfileResponse:
         """Update user profile."""
-        await self.repository.update_user_profile(user_id, data.model_dump(exclude_unset=True))
+        await self.repository.update_user_profile(
+            user_id, data.model_dump(exclude_unset=True)
+        )
         return await self.get_user_profile(user_id)
 
     async def create_user_settings(
@@ -66,7 +70,9 @@ class UserService:
         self, user_id: UUID, data: UserSettingsUpdate
     ) -> UserSettingsResponse:
         """Update user settings."""
-        await self.repository.update_user_settings(user_id, data.model_dump(exclude_unset=True))
+        await self.repository.update_user_settings(
+            user_id, data.model_dump(exclude_unset=True)
+        )
         return await self.get_user_settings(user_id)
 
     async def create_privacy_settings(

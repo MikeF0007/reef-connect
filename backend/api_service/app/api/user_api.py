@@ -45,7 +45,7 @@ def get_user_service(session: AsyncSession = Depends(get_db_session)) -> UserSer
     return UserService(repository)
 
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 @router.get("/me/profile", response_model=UserProfileResponse)

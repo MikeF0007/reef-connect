@@ -97,11 +97,17 @@
 
 ```typescript
 {
-  user: User; // email only included if viewing own profile
-  stats?: UserStats; // if included and visible
-  badges?: Badge[]; // if included
-  friendshipStatus?: 'none' | 'pending_sent' | 'pending_received' | 'friends';
-  isOwnProfile: boolean;
+  id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  bio?: string;
+  avatar_url?: string;
+  first_name?: string;
+  last_name?: string;
+  location?: string;
+  website_url?: string;
+  birth_date?: string;
 }
 ```
 
@@ -405,7 +411,7 @@
 ```typescript
 {
   media: Media; // includes thumbnailUrl when available
-  uploadStatus: "accepted" | "rejected"; // validation feedback - was upload accepted?
+  uploadStatus: 'accepted' | 'rejected'; // validation feedback - was upload accepted?
 }
 ```
 

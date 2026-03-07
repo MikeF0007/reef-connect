@@ -3,11 +3,7 @@
 from uuid import uuid4
 
 import pytest
-from common.db.models.user_models import (
-    PrivacySettings,
-    UserProfile,
-    UserSettings
-)
+from common.db.models.user_models import PrivacySettings, UserProfile, UserSettings
 from common.types.enums import UnitSystem, Visibility
 
 
@@ -18,7 +14,10 @@ class TestUserAPI:
     async def test_user_profile(self, async_session, mock_current_user_id):
         """Create a test user profile in the database."""
         profile = UserProfile(
-            user_id=mock_current_user_id, first_name="Michael", last_name="Feldman", bio="Test bio"
+            user_id=mock_current_user_id,
+            first_name="Michael",
+            last_name="Feldman",
+            bio="Test bio",
         )
         async_session.add(profile)
         await async_session.commit()
@@ -51,8 +50,8 @@ class TestUserAPI:
         return privacy
 
     async def test_get_my_profile(self, client, test_user_profile):
-        """Test GET /users/me/profile."""
-        response = client.get("/users/me/profile")
+        """Test GET /api/users/me/profile."""
+        response = client.get("/api/users/me/profile")
 
         assert response.status_code == 200
         data = response.json()
@@ -61,16 +60,16 @@ class TestUserAPI:
         assert data["bio"] == "Test bio"
 
     async def test_get_my_profile_not_found(self, client):
-        """Test GET /users/me/profile when profile doesn't exist."""
-        response = client.get("/users/me/profile")
+        """Test GET /api/users/me/profile when profile doesn't exist."""
+        response = client.get("/api/users/me/profile")
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
     async def test_update_my_profile(self, client, test_user_profile):
-        """Test PATCH /users/me/profile."""
+        """Test PATCH /api/users/me/profile."""
         update_data = {"bio": "Updated bio", "first_name": "Jane"}
-        response = client.patch("/users/me/profile", json=update_data)
+        response = client.patch("/api/users/me/profile", json=update_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -78,9 +77,9 @@ class TestUserAPI:
         assert data["bio"] == "Updated bio"
 
     async def test_update_my_profile_partial(self, client, test_user_profile):
-        """Test PATCH /users/me/profile with partial update."""
+        """Test PATCH /api/users/me/profile with partial update."""
         update_data = {"bio": "Only bio updated"}
-        response = client.patch("/users/me/profile", json=update_data)
+        response = client.patch("/api/users/me/profile", json=update_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -88,15 +87,15 @@ class TestUserAPI:
         assert data["bio"] == "Only bio updated"
 
     async def test_update_my_profile_invalid_data(self, client, test_user_profile):
-        """Test PATCH /users/me/profile with invalid data."""
+        """Test PATCH /api/users/me/profile with invalid data."""
         invalid_data = {"first_name": ""}  # Empty name
-        response = client.patch("/users/me/profile", json=invalid_data)
+        response = client.patch("/api/users/me/profile", json=invalid_data)
 
         assert response.status_code == 422  # Validation error
 
     async def test_get_my_settings(self, client, test_user_settings):
-        """Test GET /users/me/settings."""
-        response = client.get("/users/me/settings")
+        """Test GET /api/users/me/settings."""
+        response = client.get("/api/users/me/settings")
 
         assert response.status_code == 200
         data = response.json()
@@ -104,16 +103,16 @@ class TestUserAPI:
         assert data["timezone"] == "UTC"
 
     async def test_get_my_settings_not_found(self, client):
-        """Test GET /users/me/settings when settings don't exist."""
-        response = client.get("/users/me/settings")
+        """Test GET /api/users/me/settings when settings don't exist."""
+        response = client.get("/api/users/me/settings")
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
     async def test_update_my_settings(self, client, test_user_settings):
-        """Test PATCH /users/me/settings."""
+        """Test PATCH /api/users/me/settings."""
         update_data = {"preferred_units": "metric", "language": "fr"}
-        response = client.patch("/users/me/settings", json=update_data)
+        response = client.patch("/api/users/me/settings", json=update_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -121,24 +120,24 @@ class TestUserAPI:
         assert data["language"] == "fr"
 
     async def test_get_my_privacy_settings(self, client, test_privacy_settings):
-        """Test GET /users/me/privacy."""
-        response = client.get("/users/me/privacy")
+        """Test GET /api/users/me/privacy."""
+        response = client.get("/api/users/me/privacy")
 
         assert response.status_code == 200
         data = response.json()
         assert data["profile_visibility"] == "public"
 
     async def test_get_my_privacy_settings_not_found(self, client):
-        """Test GET /users/me/privacy when settings don't exist."""
-        response = client.get("/users/me/privacy")
+        """Test GET /api/users/me/privacy when settings don't exist."""
+        response = client.get("/api/users/me/privacy")
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
     async def test_update_my_privacy_settings(self, client, test_privacy_settings):
-        """Test PATCH /users/me/privacy."""
+        """Test PATCH /api/users/me/privacy."""
         update_data = {"profile_visibility": "private"}
-        response = client.patch("/users/me/privacy", json=update_data)
+        response = client.patch("/api/users/me/privacy", json=update_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -153,7 +152,7 @@ class TestUserAPI:
         async_session.add(profile)
         await async_session.commit()
 
-        response = client.get(f"/users/{other_user_id}/profile")
+        response = client.get(f"/api/users/{other_user_id}/profile")
 
         assert response.status_code == 200
         data = response.json()
@@ -163,7 +162,7 @@ class TestUserAPI:
     async def test_get_user_profile_not_found(self, client):
         """Test GET /users/{user_id}/profile for nonexistent user."""
         random_id = uuid4()
-        response = client.get(f"/users/{random_id}/profile")
+        response = client.get(f"/api/users/{random_id}/profile")
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
