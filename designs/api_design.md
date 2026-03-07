@@ -5,7 +5,6 @@
 - Bundle related data to minimize round trips
 - Use pagination for list endpoints (default: 20 items, max: 100)
 - Return nested objects where appropriate to avoid N+1 queries
-- Include metadata (counts, has_more flags) for better UX
 - Use consistent response structures
 
 ---
@@ -260,48 +259,59 @@
 
 ### `GET /api/divelogs`
 
-**Purpose:** Get paginated dive logs for a user
+**Purpose:** Get dive logs for a user
 
 **Query Parameters:**
 
 - `userId?: string` (defaults to current user)
-- `page?: number`
-- `limit?: number`
 - `sortBy?: 'date' | 'maxDepth' | 'duration' | 'location' | 'experienceRating'` (default: 'date')
 - `order?: 'asc' | 'desc'` (default: 'desc')
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
 
-**Response:**
+**Response:** `DiveLog[]`
 
-```typescript
-{
-  diveLogs: DiveLog[];
-  total: number;
-  page: number;
-  hasMore: boolean;
-}
-```
+---
+
+### `GET /api/divelogs/date-range`
+
+**Purpose:** Get dive logs within a date range for a user
+
+**Query Parameters:**
+
+- `userId?: string` (defaults to current user)
+- `startDate: string` (YYYY-MM-DD)
+- `endDate: string` (YYYY-MM-DD)
+- `sortBy?: 'date' | 'maxDepth' | 'duration' | 'location' | 'experienceRating'` (default: 'date')
+- `order?: 'asc' | 'desc'` (default: 'desc')
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
+
+**Response:** `DiveLog[]`
+
+---
+
+### `GET /api/divelogs/location/{location}`
+
+**Purpose:** Get dive logs by location (partial match on dive site) for a user
+
+**Query Parameters:**
+
+- `userId?: string` (defaults to current user)
+- `sortBy?: 'date' | 'maxDepth' | 'duration' | 'location' | 'experienceRating'` (default: 'date')
+- `order?: 'asc' | 'desc'` (default: 'desc')
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
+
+**Response:** `DiveLog[]`
 
 ---
 
 ### `GET /api/divelogs/:diveLogId`
 
-**Purpose:** Get detailed dive log with associated media
+**Purpose:** Get detailed dive log
 
-**Response:**
-
-```typescript
-{
-  diveLog: DiveLog;
-  media: Array<{
-    media: Media;
-    tags: Array<{
-      tag: SpeciesTag;
-      species: Species;
-    }>;
-  }>; // NOTE: If dive logs frequently have >50 media items, consider adding pagination with query params: ?mediaPage=1&mediaLimit=20
-  canEdit: boolean; // permission check
-}
-```
+**Response:** `DiveLog`
 
 ---
 
@@ -332,7 +342,7 @@
   visibilityDescription?: string;
   location?: {
     lat: number;
-    lng: number;
+    long: number;
   };
 
   // Environmental (optional)
@@ -359,9 +369,6 @@
   experienceRating?: number;
   publicNotes?: string;
   privateNotes?: string;
-
-  // Meta (optional)
-  metadata?: any;
 }
 ```
 
@@ -381,14 +388,13 @@
 
 ### `DELETE /api/divelogs/:diveLogId`
 
-**Purpose:** Delete dive log and associated media
+**Purpose:** Delete dive log
 
 **Response:**
 
 ```typescript
 {
-  success: boolean;
-  deletedMediaCount: number;
+  message: string;
 }
 ```
 
@@ -457,24 +463,16 @@
 - `userId?: string`
 - `diveLogId?: string`
 - `mediaType?: string`
-- `page?: number`
-- `limit?: number`
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
 
-**Response:**
-
-```typescript
-{
-  media: Array<{
-    media: Media;
-    tags: Array<{
-      tag: SpeciesTag;
-      species: Species;
-    }>;
-  }>;
-  total: number;
-  hasMore: boolean;
-}
-```
+**Response:** Array<{
+media: Media;
+tags: Array<{
+tag: SpeciesTag;
+species: Species;
+}>;
+}>
 
 ---
 
@@ -525,18 +523,10 @@
 
 - `search?: string`
 - `category?: string`
-- `page?: number`
-- `limit?: number`
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
 
-**Response:**
-
-```typescript
-{
-  species: Species[];
-  total: number;
-  hasMore: boolean;
-}
-```
+**Response:** Species[]
 
 ---
 
@@ -591,23 +581,10 @@ All paginated endpoints should follow this pattern:
 
 **Query Parameters:**
 
-- `page?: number` (default: 1)
-- `limit?: number` (default: 20, max: 100)
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
 
-**Response Structure:**
-
-```typescript
-{
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasMore: boolean;
-  };
-}
-```
+**Response Structure:** `T[]`
 
 ### Error Response Format
 

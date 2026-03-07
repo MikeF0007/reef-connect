@@ -28,7 +28,8 @@ entity "dive_logs" as dive_logs {
   avg_depth_ft : numeric
   visibility_ft : numeric
   visibility_description : text
-  location : geography(Point,4326)
+  lat: numeric
+  long: numeric
   --
   ' Environmental
   weather : Weather
@@ -145,10 +146,6 @@ note right of dive_logs
   **Units:**
   - Values stored in imperial (feet/Fahrenheit/PSI), convert in API or in frontend as needed
   - Preferred units can be maintained in user settings/profile
-
-  **Location:**
-  - PostGIS geography field provides spatial indexing and querying
-  - Use ST_Y(location) and ST_X(location) to extract lat/lng for APIs
 
   **Deletion Cascade Behavior:**
   - Dive log deleted → SET NULL on media.dive_log_id (media survives)
