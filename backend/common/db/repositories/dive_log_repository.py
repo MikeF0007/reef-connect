@@ -17,10 +17,10 @@ from common.db.repositories.interfaces import IDiveLogRepository
 # Maps the public sort_by names from the interface contract to ORM columns.
 _SORT_COLUMNS = {
     "date": DiveLog.dive_date,
-    "maxDepth": DiveLog.max_depth_ft,
+    "max_depth": DiveLog.max_depth_ft,
     "duration": DiveLog.duration_minutes,
     "location": DiveLog.dive_site,
-    "experienceRating": DiveLog.experience_rating,
+    "experience_rating": DiveLog.experience_rating,
 }
 
 
@@ -158,8 +158,8 @@ class DiveLogRepository(IDiveLogRepository):
         Args:
             user_id: The user UUID.
             sort_by: Column to sort by. Accepted values: ``"date"``,
-                ``"maxDepth"``, ``"duration"``, ``"location"``,
-                ``"experienceRating"``. Defaults to ``"date"``.
+                ``"max_depth"``, ``"duration"``, ``"location"``,
+                ``"experience_rating"``. Defaults to ``"date"``.
             order: Sort direction — ``"asc"`` or ``"desc"``.
                 Defaults to ``"desc"``.
             limit: Maximum number of results to return.
@@ -177,18 +177,20 @@ class DiveLogRepository(IDiveLogRepository):
     async def get_dive_logs_by_location(
         self,
         location: str,
+        user_id: uuid.UUID,
         *,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> list[DiveLog]:
-        """Retrieve dive logs by dive site (case-insensitive partial match).
+        """Retrieve dive logs by dive site (case-insensitive partial match) for a user.
 
         Args:
             location: Partial or full dive-site name to search for.
+            user_id: ID of the user to filter dive logs for.
             sort_by: Column to sort by. Accepted values: ``"date"``,
-                ``"maxDepth"``, ``"duration"``, ``"experienceRating"``.
+                ``"max_depth"``, ``"duration"``, ``"experience_rating"``.
                 Defaults to ``"date"``.
             order: Sort direction — ``"asc"`` or ``"desc"``.
                 Defaults to ``"desc"``.
@@ -196,11 +198,12 @@ class DiveLogRepository(IDiveLogRepository):
             offset: Number of results to skip.
 
         Returns:
-            A sorted, paginated list of matching DiveLog instances.
+            A sorted, paginated list of matching DiveLog instances for the user.
         """
         order_expr = self._build_order_expr(sort_by, order)
         stmt = (
             select(DiveLog)
+            .where(DiveLog.user_id == user_id)
             .where(DiveLog.dive_site.ilike(f"%{location}%"))
             .order_by(order_expr)
         )
@@ -226,8 +229,8 @@ class DiveLogRepository(IDiveLogRepository):
             start_date: Inclusive range start date.
             end_date: Inclusive range end date.
             sort_by: Column to sort by. Accepted values: ``"date"``,
-                ``"maxDepth"``, ``"duration"``, ``"location"``,
-                ``"experienceRating"``. Defaults to ``"date"``.
+                ``"max_depth"``, ``"duration"``, ``"location"``,
+                ``"experience_rating"``. Defaults to ``"date"``.
             order: Sort direction — ``"asc"`` or ``"desc"``.
                 Defaults to ``"desc"``.
             limit: Maximum number of results to return.

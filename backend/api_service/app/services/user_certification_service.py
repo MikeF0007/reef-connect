@@ -28,6 +28,12 @@ class UserCertificationService:
         TODO: Implement privacy-aware filtering:
         - Check user's profile visibility settings
         - Return empty array if profile is private or not visible to current user
+
+        Args:
+            user_id (UUID): The ID of the user whose certifications to retrieve.
+
+        Returns:
+            List[UserCertificationResponse]: A list of user certifications.
         """
         certifications = await self.repository.get_user_certifications(user_id)
         return [
@@ -37,7 +43,15 @@ class UserCertificationService:
     async def add_user_certification(
         self, user_id: UUID, data: UserCertificationCreate
     ) -> UserCertificationResponse:
-        """Add a new certification for a user."""
+        """Add a new certification for a user.
+
+        Args:
+            user_id (UUID): The ID of the user to add the certification for.
+            data (UserCertificationCreate): The certification data to add.
+
+        Returns:
+            UserCertificationResponse: The newly added user certification.
+        """
         cert_id = await self.repository.add_user_certification(
             user_id=user_id, **data.model_dump()
         )
@@ -47,7 +61,16 @@ class UserCertificationService:
     async def update_user_certification(
         self, certification_id: UUID, user_id: UUID, data: UserCertificationUpdate
     ) -> UserCertificationResponse:
-        """Update a certification if it belongs to the user."""
+        """Update a certification if it belongs to the user.
+
+        Args:
+            certification_id (UUID): The ID of the certification to update.
+            user_id (UUID): The ID of the user attempting the update.
+            data (UserCertificationUpdate): The fields to update in the certification.
+
+        Returns:
+            UserCertificationResponse: The updated user certification.
+        """
         # First check if certification exists and belongs to user
         certification = await self.repository.get_certification_by_id(certification_id)
         if not certification or certification.user_id != user_id:
@@ -61,7 +84,12 @@ class UserCertificationService:
     async def delete_user_certification(
         self, certification_id: UUID, user_id: UUID
     ) -> None:
-        """Delete a certification if it belongs to the user."""
+        """Delete a certification if it belongs to the user.
+
+        Args:
+            certification_id (UUID): The ID of the certification to delete.
+            user_id (UUID): The ID of the user attempting the deletion.
+        """
         certification = await self.repository.get_certification_by_id(certification_id)
         if not certification or certification.user_id != user_id:
             raise ValueError("Certification not found or access denied")

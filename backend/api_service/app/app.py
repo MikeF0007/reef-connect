@@ -7,10 +7,11 @@ try:
 except ImportError:
     app = FastAPI(title="ReefConnect API", version="1.0.0")
 
-from .api import certification_api, user_api
+from .api import certification_api, dive_log_api, user_api
 
 app.include_router(user_api.router)
 app.include_router(certification_api.router)
+app.include_router(dive_log_api.router)
 
 
 @app.get("/")

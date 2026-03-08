@@ -81,7 +81,7 @@ def override_dependencies(mock_current_user_id, async_session):
         mock_current_user_id: The test user ID fixture.
         async_session: The test database session fixture.
     """
-    from api_service.app.api import certification_api, user_api
+    from api_service.app.api import certification_api, dive_log_api, user_api
     from common.db.database import get_db_session
 
     def mock_get_current_user_id():
@@ -92,7 +92,12 @@ def override_dependencies(mock_current_user_id, async_session):
 
     # Override the dependencies in both routers
     app.dependency_overrides[user_api.get_current_user_id] = mock_get_current_user_id
-    app.dependency_overrides[certification_api.get_current_user_id] = mock_get_current_user_id
+    app.dependency_overrides[certification_api.get_current_user_id] = (
+        mock_get_current_user_id
+    )
+    app.dependency_overrides[dive_log_api.get_current_user_id] = (
+        mock_get_current_user_id
+    )
     app.dependency_overrides[get_db_session] = mock_get_db_session
 
     yield

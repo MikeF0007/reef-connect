@@ -304,7 +304,9 @@ class TestDiveLogRepository:
         await _create_test_dive_log(async_session, user_id, dive_site="Blue Hole")
         await _create_test_dive_log(async_session, user_id, dive_site="Palancar Reef")
 
-        logs = await DiveLogRepository(async_session).get_dive_logs_by_location("Blue")
+        logs = await DiveLogRepository(async_session).get_dive_logs_by_location(
+            "Blue", user_id
+        )
         sites = [log.dive_site for log in logs]
         assert "Blue Corner Wall" in sites
         assert "Blue Hole" in sites
@@ -322,7 +324,7 @@ class TestDiveLogRepository:
         await _create_test_dive_log(async_session, user_id, dive_site="Blue Corner")
 
         logs = await DiveLogRepository(async_session).get_dive_logs_by_location(
-            "blue corner"
+            "blue corner", user_id
         )
         assert len(logs) == 1
 
@@ -337,7 +339,9 @@ class TestDiveLogRepository:
         user_id = await _create_test_user(async_session)
         await _create_test_dive_log(async_session, user_id, dive_site="Palancar Reef")
 
-        logs = await DiveLogRepository(async_session).get_dive_logs_by_location("zzz")
+        logs = await DiveLogRepository(async_session).get_dive_logs_by_location(
+            "zzz", user_id
+        )
         assert logs == []
 
     async def test_get_dive_logs_by_location_pagination(
@@ -355,7 +359,7 @@ class TestDiveLogRepository:
             )
 
         page = await DiveLogRepository(async_session).get_dive_logs_by_location(
-            "Reef Site", limit=2, offset=1
+            "Reef Site", user_id, limit=2, offset=1
         )
         assert len(page) == 2
 

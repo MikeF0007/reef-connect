@@ -84,7 +84,7 @@
 
 ## 2. User Profiles
 
-### `GET /api/users/:userId/profile`
+### `GET /api/users/:user_id/profile`
 
 **Purpose:** Get user profile with privacy-aware data bundling
 
@@ -195,7 +195,7 @@
 
 ---
 
-### `GET /api/users/:userId/certifications`
+### `GET /api/users/:user_id/certifications`
 
 **Purpose:** Get user's certifications (subject to profile privacy settings)
 
@@ -211,11 +211,11 @@
 
 ```typescript
 {
-  certificationName: string;
+  certification_name: string;
   issuer: string;
-  issuedDate: string; // ISO date string
-  expiryDate?: string; // ISO date string
-  certificationNumber?: string;
+  issued_date: string; // ISO date string
+  expiry_date?: string; // ISO date string
+  certification_number?: string;
   notes?: string;
   verified?: boolean;
 }
@@ -225,7 +225,7 @@
 
 ---
 
-### `PATCH /api/users/me/certifications/:certificationId`
+### `PATCH /api/users/me/certifications/:certification_id`
 
 **Purpose:** Update a certification
 
@@ -233,11 +233,11 @@
 
 ```typescript
 {
-  certificationName?: string;
+  certification_name?: string;
   issuer?: string;
-  issuedDate?: string;
-  expiryDate?: string;
-  certificationNumber?: string;
+  issued_date?: string;
+  expiry_date?: string;
+  certification_number?: string;
   notes?: string;
   verified?: boolean;
 }
@@ -247,7 +247,7 @@
 
 ---
 
-### `DELETE /api/users/me/certifications/:certificationId`
+### `DELETE /api/users/me/certifications/:certification_id`
 
 **Purpose:** Delete a certification
 
@@ -263,8 +263,8 @@
 
 **Query Parameters:**
 
-- `userId?: string` (defaults to current user)
-- `sortBy?: 'date' | 'maxDepth' | 'duration' | 'location' | 'experienceRating'` (default: 'date')
+- `user_id?: string` (defaults to current user)
+- `sort_by?: 'date' | 'max_depth' | 'duration' | 'location' | 'experience_rating'` (default: 'date')
 - `order?: 'asc' | 'desc'` (default: 'desc')
 - `limit?: number` (1-100, default: 20)
 - `offset?: number` (default: 0)
@@ -279,10 +279,10 @@
 
 **Query Parameters:**
 
-- `userId?: string` (defaults to current user)
-- `startDate: string` (YYYY-MM-DD)
-- `endDate: string` (YYYY-MM-DD)
-- `sortBy?: 'date' | 'maxDepth' | 'duration' | 'location' | 'experienceRating'` (default: 'date')
+- `user_id?: string` (defaults to current user)
+- `start_date: string` (YYYY-MM-DD)
+- `end_date: string` (YYYY-MM-DD)
+- `sort_by?: 'date' | 'max_depth' | 'duration' | 'location' | 'experience_rating'` (default: 'date')
 - `order?: 'asc' | 'desc'` (default: 'desc')
 - `limit?: number` (1-100, default: 20)
 - `offset?: number` (default: 0)
@@ -297,8 +297,8 @@
 
 **Query Parameters:**
 
-- `userId?: string` (defaults to current user)
-- `sortBy?: 'date' | 'maxDepth' | 'duration' | 'location' | 'experienceRating'` (default: 'date')
+- `user_id?: string` (defaults to current user)
+- `sort_by?: 'date' | 'max_depth' | 'duration' | 'location' | 'experience_rating'` (default: 'date')
 - `order?: 'asc' | 'desc'` (default: 'desc')
 - `limit?: number` (1-100, default: 20)
 - `offset?: number` (default: 0)
@@ -307,7 +307,7 @@
 
 ---
 
-### `GET /api/divelogs/:diveLogId`
+### `GET /api/divelogs/:dive_log_id`
 
 **Purpose:** Get detailed dive log
 
@@ -328,18 +328,18 @@
   title: string;
   site: string;
   duration: number;
-  maxDepth: number;
-  visibility: 'public' | 'private' | 'unlisted';
+  max_depth: number;
+  log_visibility: 'public' | 'private' | 'unlisted';
 
   // Dive Basics (optional)
   period?: 'morning' | 'afternoon' | 'night';
-  startType?: 'boat' | 'shore';
+  start_type?: 'boat' | 'shore';
   type?: 'reef' | 'wall' | 'drift' | 'cave' | 'deep' | 'shipwreck' | 'other';
   purpose?: 'recreational' | 'training' | 'research' | 'restoration' | 'other';
 
   // Measurements (optional)
-  avgDepth?: number;
-  visibilityDescription?: string;
+  avg_depth?: number;
+  visibility_description?: string;
   location?: {
     lat: number;
     long: number;
@@ -347,28 +347,28 @@
 
   // Environmental (optional)
   weather?: 'sunny' | 'partly cloudy' | 'cloudy' | 'rainy' | 'windy' | 'foggy';
-  airTemp?: number;
-  surfaceTemp?: number;
-  bottomTemp?: number;
-  waterType?: 'salt' | 'fresh' | 'brackish';
-  bodyOfWater?: 'ocean' | 'lake' | 'river' | 'quarry' | 'cenote';
+  air_temp?: number;
+  surface_temp?: number;
+  bottom_temp?: number;
+  water_type?: 'salt' | 'fresh' | 'brackish';
+  body_of_water?: 'ocean' | 'lake' | 'river' | 'quarry' | 'cenote';
   wave?: 'none' | 'small' | 'medium' | 'large';
   current?: 'none' | 'light' | 'moderate' | 'strong';
   surge?: 'none' | 'light' | 'moderate' | 'strong';
 
   // Equipment (optional JSONB fields)
   equipment?: any;
-  gasMix?: any;
-  cylinderPressure?: any;
-  safetyStops?: any;
+  gas_mix?: any;
+  cylinder_pressure?: any;
+  safety_stops?: any;
 
   // People/Experience (optional)
   buddy?: string;
-  diveCenter?: string;
-  experienceFeeling?: 'amazing' | 'good' | 'average' | 'poor';
-  experienceRating?: number;
-  publicNotes?: string;
-  privateNotes?: string;
+  dive_center?: string;
+  experience_feeling?: 'amazing' | 'good' | 'average' | 'poor';
+  experience_rating?: number;
+  public_notes?: string;
+  private_notes?: string;
 }
 ```
 
@@ -376,7 +376,7 @@
 
 ---
 
-### `PATCH /api/divelogs/:diveLogId`
+### `PATCH /api/divelogs/:dive_log_id`
 
 **Purpose:** Update existing dive log
 
@@ -386,7 +386,7 @@
 
 ---
 
-### `DELETE /api/divelogs/:diveLogId`
+### `DELETE /api/divelogs/:dive_log_id`
 
 **Purpose:** Delete dive log
 
@@ -409,7 +409,7 @@
 **Request Body:** `FormData` with:
 
 - `file: File`
-- `diveLogId: string`
+- `dive_log_id: string`
 - `caption?: string`
 
 **Response:**
@@ -423,7 +423,7 @@
 
 ---
 
-### `DELETE /api/media/:mediaId`
+### `DELETE /api/media/:media_id`
 
 **Purpose:** Delete media (removes associated tags automatically)
 
@@ -438,7 +438,7 @@
 
 ---
 
-### `PATCH /api/media/:mediaId`
+### `PATCH /api/media/:media_id`
 
 **Purpose:** Update media description
 
@@ -460,9 +460,9 @@
 
 **Query Parameters:**
 
-- `userId?: string`
-- `diveLogId?: string`
-- `mediaType?: string`
+- `user_id?: string`
+- `dive_log_id?: string`
+- `media_type?: string`
 - `limit?: number` (1-100, default: 20)
 - `offset?: number` (default: 0)
 
@@ -478,7 +478,7 @@ species: Species;
 
 ## 5. Species Tagging
 
-### `POST /api/media/:mediaId/tags`
+### `POST /api/media/:media_id/tags`
 
 **Purpose:** Tag a species on media
 
@@ -486,7 +486,7 @@ species: Species;
 
 ```typescript
 {
-  speciesId: string;
+  species_id: string;
 }
 ```
 
@@ -501,7 +501,7 @@ species: Species;
 
 ---
 
-### `DELETE /api/media/:mediaId/tags/:tagId`
+### `DELETE /api/media/:media_id/tags/:tag_id`
 
 **Purpose:** Remove species tag
 
@@ -532,13 +532,13 @@ species: Species;
 
 ## 6. ScubaDex
 
-### `GET /api/scubadex/:userId`
+### `GET /api/scubadex/:user_id`
 
 **Purpose:** Get user's ScubaDex (discovered species)
 
 **Query Parameters:**
 
-- `includeMedia?: boolean` (include sample media for each species)
+- `include_media?: boolean` (include sample media for each species)
 
 **Response:**
 
@@ -546,13 +546,13 @@ species: Species;
 {
   entries: Array<{
     species: Species;
-    firstSeenDate: string;
-    encounterCount: number;
-    sampleMedia?: Media[]; // max 3 if includeMedia=true
+    first_seen_date: string;
+    encounter_count: number;
+    sample_media?: Media[]; // max 3 if includeMedia=true
   }>;
-  totalDiscovered: number;
-  totalSpecies: number; // in catalog
-  percentComplete: number;
+  total_discovered: number;
+  total_species: number; // in catalog
+  percent_complete: number;
 }
 ```
 

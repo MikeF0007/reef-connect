@@ -15,17 +15,17 @@ package "common.db.PlantUML file: db_classes" <<frame>> {
             their IDs in a single query for efficiency. Returns only the dive logs that exist.
         + get_dive_logs_by_user(user_id: UUID, sort_by: Optional[str], order: Optional[str],
             limit: Optional[int], offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a
-            user with optional sorting (date, maxDepth, duration, location, experienceRating) and
+            user with optional sorting (date, max_depth, duration, location, experience_rating) and
             ordering (asc, desc), with optional pagination. Defaults to sort by date descending.
         + get_dive_logs_by_location(location: str, sort_by: Optional[str], order: Optional[str],
             limit: Optional[int], offset: Optional[int]): list[DiveLog] -- Retrieves dive logs by
-            location with optional sorting (date, maxDepth, duration, experienceRating) and ordering
+            location with optional sorting (date, max_depth, duration, experience_rating) and ordering
             (asc, desc), with optional pagination. Defaults to sort by date descending.
         + get_dive_logs_by_date_range(user_id: UUID, start_date: datetime, end_date: datetime,
             sort_by: Optional[str], order: Optional[str], limit: Optional[int],
             offset: Optional[int]): list[DiveLog] -- Retrieves dive logs for a user within a
-            specific date range with optional sorting (date, maxDepth, duration, location,
-            experienceRating) and ordering (asc, desc), with optional pagination. Defaults to sort
+            specific date range with optional sorting (date, max_depth, duration, location,
+            experience_rating) and ordering (asc, desc), with optional pagination. Defaults to sort
             by date descending.
         + update_dive_log(dive_log_id: UUID, updates: dict): void -- Updates specific fields of a
             dive log. Only the fields provided in the updates dict will be modified. To clear a
