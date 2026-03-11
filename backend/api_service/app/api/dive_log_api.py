@@ -9,10 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.db.database import get_db_session
 from common.db.repositories.dive_log_repository import DiveLogRepository
+from common.db.repositories.media_repository import MediaRepository
+from common.db.repositories.species_repository import SpeciesRepository
 
 from ..schemas.dive_log_schemas import (
     DiveLogCreate,
     DiveLogDateRangeQuery,
+    DiveLogDetailedResponse,
     DiveLogQuery,
     DiveLogResponse,
     DiveLogUpdate,
@@ -38,6 +41,9 @@ def get_dive_log_service(
 ) -> DiveLogService:
     """Dependency to get DiveLogService instance.
 
+    Includes MediaRepository and SpeciesRepository so that the single-item
+    GET endpoint can return media with species tags.
+
     Args:
         session: AsyncSession for database operations.
 
@@ -45,7 +51,9 @@ def get_dive_log_service(
         DiveLogService: An instance of DiveLogService.
     """
     repository = DiveLogRepository(session)
-    return DiveLogService(repository)
+    media_repository = MediaRepository(session)
+    species_repository = SpeciesRepository(session)
+    return DiveLogService(repository, media_repository, species_repository)
 
 
 router = APIRouter(prefix="/api/divelogs", tags=["dive-logs"])
@@ -190,22 +198,24 @@ async def get_dive_logs_by_location(
     return await service.get_dive_logs_by_location(location, target_user_id, query)
 
 
-@router.get("/{dive_log_id}", response_model=DiveLogResponse)
+@router.get("/{dive_log_id}", response_model=DiveLogDetailedResponse)
 async def get_dive_log(
     dive_log_id: UUID,
+    current_user_id: UUID = Depends(get_current_user_id),
     service: DiveLogService = Depends(get_dive_log_service),
-) -> DiveLogResponse:
-    """Get a specific dive log by ID.
+) -> DiveLogDetailedResponse:
+    """Get a specific dive log by ID including associated media and species tags.
 
     Args:
         dive_log_id: The dive log UUID.
+        current_user_id: Current authenticated user ID (used for can_edit flag).
         service: Dive log service instance.
 
     Returns:
-        DiveLogResponse: The dive log data.
+        DiveLogDetailedResponse: The dive log with media and tags.
     """
     try:
-        return await service.get_dive_log(dive_log_id)
+        return await service.get_dive_log(dive_log_id, current_user_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

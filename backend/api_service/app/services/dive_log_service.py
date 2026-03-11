@@ -4,26 +4,49 @@ from typing import List, Optional
 from uuid import UUID
 
 from common.db.repositories.dive_log_repository import DiveLogRepository
+from common.db.repositories.media_repository import MediaRepository
+from common.db.repositories.species_repository import SpeciesRepository
 
 from ..schemas.dive_log_schemas import (
     DiveLogCreate,
     DiveLogDateRangeQuery,
+    DiveLogDetailedResponse,
     DiveLogQuery,
     DiveLogResponse,
     DiveLogUpdate,
+)
+from ..schemas.media_schemas import (
+    MediaResponse,
+    MediaWithTagsResponse,
+    SpeciesResponse,
+    SpeciesTagResponse,
+    TagWithSpeciesResponse,
 )
 
 
 class DiveLogService:
     """Service for managing dive log entries."""
 
-    def __init__(self, repository: DiveLogRepository) -> None:
+    def __init__(
+        self,
+        repository: DiveLogRepository,
+        media_repository: Optional[MediaRepository] = None,
+        species_repository: Optional[SpeciesRepository] = None,
+    ) -> None:
         """Initialize the dive log service.
 
         Args:
             repository (DiveLogRepository): The repository for dive log operations.
+            media_repository (Optional[MediaRepository]): Repository for fetching
+                associated media. When provided, the detail endpoint will include
+                media with species tags in the response.
+            species_repository (Optional[SpeciesRepository]): Repository for
+                resolving species data on media tags. Required when
+                media_repository is provided.
         """
         self.repository = repository
+        self.media_repository = media_repository
+        self.species_repository = species_repository
 
     async def create_dive_log(
         self, user_id: UUID, data: DiveLogCreate
@@ -48,29 +71,68 @@ class DiveLogService:
         dive_log = await self.repository.get_dive_log_by_id(dive_log_id)
         return DiveLogResponse.model_validate(dive_log)
 
-    async def get_dive_log(self, dive_log_id: UUID) -> DiveLogResponse:
-        """Get a dive log by ID.
+    async def get_dive_log(
+        self, dive_log_id: UUID, current_user_id: Optional[UUID] = None
+    ) -> DiveLogDetailedResponse:
+        """Get a dive log by ID including associated media and species tags.
 
         TODO: Implement unit conversion based on user preferences:
         - Convert temperatures from Fahrenheit to Celsius if user prefers metric
         - Convert depths from feet to meters if user prefers metric
         - Convert pressures from PSI to bar if user prefers metric
 
-        TODO: Enhance response to include media and tags data as per API design:
-        - Add media array with associated species tags
-        - Include canEdit permission flag
-        - Return structured response: {diveLog, media: [{media, tags: [{tag, species}]}], canEdit}
-
         Args:
             dive_log_id (UUID): The ID of the dive log to retrieve.
+            current_user_id (Optional[UUID]): The authenticated user's ID, used
+                to populate the ``can_edit`` flag on the response.
 
         Returns:
-            DiveLogResponse: The dive log response.
+            DiveLogDetailedResponse: The dive log with associated media and tags.
         """
         dive_log = await self.repository.get_dive_log_by_id(dive_log_id)
         if not dive_log:
             raise ValueError("Dive log not found")
-        return DiveLogResponse.model_validate(dive_log)
+
+        media_with_tags: list[MediaWithTagsResponse] = []
+        if self.media_repository is not None and self.species_repository is not None:
+            media_list = await self.media_repository.get_media_by_dive_log(dive_log_id)
+            for media in media_list:
+                tags = await self.media_repository.get_species_tags_for_media(media.id)
+                species_ids = [t.species_id for t in tags]
+                if species_ids:
+                    species_list = await self.species_repository.get_species_by_ids(
+                        species_ids
+                    )
+                    species_map = {s.id: s for s in species_list}
+                else:
+                    species_map = {}
+                tag_responses = [
+                    TagWithSpeciesResponse(
+                        tag=SpeciesTagResponse.model_validate(t),
+                        species=SpeciesResponse.model_validate(
+                            species_map[t.species_id]
+                        ),
+                    )
+                    for t in tags
+                    if t.species_id in species_map
+                ]
+                media_with_tags.append(
+                    MediaWithTagsResponse(
+                        media=MediaResponse.model_validate(media),
+                        tags=tag_responses,
+                    )
+                )
+
+        can_edit = current_user_id is not None and dive_log.user_id == current_user_id
+        # Validate via DiveLogResponse first to avoid accessing the ORM
+        # ``media`` relationship (lazy-load incompatible with async sessions)
+        # when Pydantic scans attributes of the DiveLog instance.
+        base = DiveLogResponse.model_validate(dive_log)
+        return DiveLogDetailedResponse(
+            **base.model_dump(by_alias=False),
+            media=media_with_tags,
+            can_edit=can_edit,
+        )
 
     async def get_dive_logs_by_ids(
         self, dive_log_ids: List[UUID]

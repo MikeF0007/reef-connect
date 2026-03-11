@@ -28,6 +28,8 @@ from common.types.enums import (
 )
 from pydantic import BaseModel, Field
 
+from .media_schemas import MediaWithTagsResponse
+
 
 class DiveLogCreate(BaseModel):
     """Schema for creating a dive log entry."""
@@ -222,6 +224,17 @@ class DiveLogResponse(BaseModel):
     log_visibility: Optional[Visibility] = Field(None)
 
     model_config = {"from_attributes": True, "populate_by_name": True, "by_alias": True}
+
+
+class DiveLogDetailedResponse(DiveLogResponse):
+    """Extended dive log response that includes associated media with species tags.
+
+    Returned by the single-item GET endpoint to avoid N+1 client requests
+    when a user opens a specific dive log page.
+    """
+
+    media: list[MediaWithTagsResponse] = []
+    can_edit: bool = False
 
 
 class DiveLogQuery(BaseModel):
