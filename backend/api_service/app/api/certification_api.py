@@ -112,12 +112,12 @@ async def update_my_certification(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.delete("/me/certifications/{certification_id}")
+@router.delete("/me/certifications/{certification_id}", status_code=204)
 async def delete_my_certification(
     certification_id: UUID,
     user_id: UUID = Depends(get_current_user_id),
     service: UserCertificationService = Depends(get_user_certification_service),
-) -> dict:
+) -> None:
     """Delete a certification for current user.
 
     Args:
@@ -126,11 +126,10 @@ async def delete_my_certification(
         service: User certification service instance.
 
     Returns:
-        dict: Success message.
+        None: 204 No Content on success.
     """
     try:
         await service.delete_user_certification(certification_id, user_id)
-        return {"message": "Certification deleted successfully"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

@@ -81,7 +81,9 @@ class TestCertificationAPI:
         """Test PATCH /api/users/me/certifications/{certification_id}."""
         cert_id = test_certifications[0].id
         update_data = {"certification_name": "Updated Certification"}
-        response = client.patch(f"/api/users/me/certifications/{cert_id}", json=update_data)
+        response = client.patch(
+            f"/api/users/me/certifications/{cert_id}", json=update_data
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -92,7 +94,9 @@ class TestCertificationAPI:
         """Test PATCH /api/users/me/certifications/{certification_id} for nonexistent cert."""
         random_id = uuid4()
         update_data = {"certification_name": "Updated"}
-        response = client.patch(f"/api/users/me/certifications/{random_id}", json=update_data)
+        response = client.patch(
+            f"/api/users/me/certifications/{random_id}", json=update_data
+        )
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
@@ -112,7 +116,9 @@ class TestCertificationAPI:
         await async_session.commit()
 
         update_data = {"certification_name": "PADI Open Water"}
-        response = client.patch(f"/api/users/me/certifications/{cert.id}", json=update_data)
+        response = client.patch(
+            f"/api/users/me/certifications/{cert.id}", json=update_data
+        )
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
@@ -122,8 +128,8 @@ class TestCertificationAPI:
         cert_id = test_certifications[0].id
         response = client.delete(f"/api/users/me/certifications/{cert_id}")
 
-        assert response.status_code == 200
-        assert response.json() == {"message": "Certification deleted successfully"}
+        assert response.status_code == 204
+        assert response.text == ""
 
         # Verify it's gone
         response = client.get("/api/users/me/certifications")
