@@ -111,6 +111,28 @@ class ScubaDexRepository(IScubaDexRepository):
         entry = await self._get_entry(user_id, species_id)
         return entry.times_encountered if entry is not None else 0
 
+    async def get_user_dex_entries(self, user_id: uuid.UUID) -> list[ScubadexEntry]:
+        """Return all ScubadexEntry instances for a user.
+
+        Results are ordered by ``date_first_encountered`` ascending so callers
+        receive the user's discovery history in chronological order.
+
+        Args:
+            user_id: The user UUID.
+
+        Returns:
+            A list of ScubadexEntry ORM objects.
+        """
+        from sqlalchemy import asc
+
+        stmt = (
+            select(ScubadexEntry)
+            .where(ScubadexEntry.user_id == user_id)
+            .order_by(asc(ScubadexEntry.date_first_encountered))
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
     async def get_user_species_encounters(
         self, user_id: uuid.UUID
     ) -> list[tuple[uuid.UUID, int]]:

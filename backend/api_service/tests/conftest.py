@@ -100,6 +100,7 @@ def override_dependencies(mock_current_user_id, async_session):
     )
     app.dependency_overrides[media_api.get_current_user_id] = mock_get_current_user_id
     app.dependency_overrides[get_db_session] = mock_get_db_session
+    # species and scubadex routers use get_db_session directly (no auth stub)
 
     yield
 
