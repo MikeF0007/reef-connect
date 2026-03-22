@@ -1,22 +1,38 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { User } from '../types';
+import { loginUser } from '../../api/authApi';
+import { TOKEN_KEY } from '../../lib/apiClient';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, username: string) => Promise<boolean>;
+  register: (
+    email: string,
+    password: string,
+    username: string,
+  ) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  authError: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for stored session
+    // Restore session from localStorage on mount
     const storedUser = localStorage.getItem('reefconnect_user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -24,22 +40,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock authentication
-    const users = JSON.parse(localStorage.getItem('reefconnect_users') || '[]');
-    const foundUser = users.find((u: any) => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('reefconnect_user', JSON.stringify(userWithoutPassword));
+    setIsLoading(true);
+    setAuthError(null);
+    try {
+      const { user: loggedInUser, token } = await loginUser(email, password);
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem('reefconnect_user', JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
       return true;
+    } catch (err: any) {
+      const message = err.response?.data?.error ?? 'Invalid email or password';
+      setAuthError(message);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    return false;
   };
 
-  const register = async (email: string, password: string, username: string): Promise<boolean> => {
+  const register = async (
+    email: string,
+    password: string,
+    username: string,
+  ): Promise<boolean> => {
     const users = JSON.parse(localStorage.getItem('reefconnect_users') || '[]');
-    
+
     // Check if user exists
     if (users.some((u: any) => u.email === email)) {
       return false;
@@ -66,13 +90,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { password: _, ...userWithoutPassword } = newUser;
     setUser(userWithoutPassword);
-    localStorage.setItem('reefconnect_user', JSON.stringify(userWithoutPassword));
+    localStorage.setItem(
+      'reefconnect_user',
+      JSON.stringify(userWithoutPassword),
+    );
     return true;
   };
 
   const logout = () => {
     setUser(null);
+    setAuthError(null);
     localStorage.removeItem('reefconnect_user');
+    localStorage.removeItem(TOKEN_KEY);
   };
 
   const updateProfile = (updates: Partial<User>) => {
@@ -92,14 +121,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      register, 
-      logout, 
-      updateProfile,
-      isAuthenticated: !!user 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        updateProfile,
+        isAuthenticated: !!user,
+        isLoading,
+        authError,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
