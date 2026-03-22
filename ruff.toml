@@ -35,4 +35,5 @@ ignore = [
 known-first-party = [
     "reef_connect",
     "backend",
+    "api_service",
 ]

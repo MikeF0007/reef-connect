@@ -69,6 +69,18 @@ class IScubaDexRepository(Protocol):
         """
         ...
 
+    async def get_user_dex_entries(self, user_id: uuid.UUID) -> list:
+        """Return all ScubadexEntry instances for a user.
+
+        Args:
+            user_id: The user UUID.
+
+        Returns:
+            A list of ScubadexEntry ORM objects, ordered by
+            ``date_first_encountered`` ascending.
+        """
+        ...
+
     async def get_user_species_encounters(
         self, user_id: uuid.UUID
     ) -> list[tuple[uuid.UUID, int]]:

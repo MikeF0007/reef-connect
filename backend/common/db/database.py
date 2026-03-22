@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from common.config import settings
 from common.db.models.base_model import Base
 
-
 # ============================================================================
 # Async Engine & Session (for FastAPI endpoints)
 # ============================================================================
@@ -104,3 +103,21 @@ def get_sync_db() -> Session:
         Session: Synchronous database session
     """
     return SyncSessionLocal()
+
+
+# ============================================================================
+# FastAPI Dependency Functions
+# ============================================================================
+
+
+async def get_db_session() -> AsyncSession:
+    """FastAPI dependency to get async database session.
+
+    Yields:
+        AsyncSession: Database session for the request.
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

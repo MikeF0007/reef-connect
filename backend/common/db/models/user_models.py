@@ -8,26 +8,18 @@ import uuid
 from datetime import date, datetime
 from typing import List, Optional
 
-from sqlalchemy import (
-    Boolean,
-    Date,
-    DateTime,
-    String,
-    Text,
-    func,
-    JSON,
-    ForeignKey,
-    Enum as SQLEnum,
-)
+from sqlalchemy import JSON, Boolean, Date, DateTime
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 
 # Use JSON for SQLite compatibility (JSONB not supported)
 JSON_TYPE = JSON
 
+from common.db.db_types import EncryptedText
+from common.types import UnitSystem, Visibility
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from common.types import UnitSystem, Visibility
-from common.db.db_types import EncryptedText
 from .base_model import Base
 
 
@@ -36,15 +28,9 @@ class User(Base):
 
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    email: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False, index=True
-    )
-    username: Mapped[str] = mapped_column(
-        String(50), unique=True, nullable=False, index=True
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -58,9 +44,7 @@ class User(Base):
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    email_verified_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
-    )
+    email_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     auth_providers: Mapped[Optional[dict]] = mapped_column(JSON_TYPE)
     mfa_secret: Mapped[Optional[str]] = mapped_column(EncryptedText)
 
@@ -89,9 +73,7 @@ class UserProfile(Base):
 
     __tablename__ = "user_profiles"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -128,9 +110,7 @@ class UserSettings(Base):
 
     __tablename__ = "user_settings"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -152,6 +132,7 @@ class UserSettings(Base):
     )
     timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
     language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
+    notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="settings")
@@ -162,9 +143,7 @@ class PrivacySettings(Base):
 
     __tablename__ = "privacy_settings"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -202,9 +181,7 @@ class UserCertification(Base):
 
     __tablename__ = "user_certifications"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),

@@ -5,7 +5,6 @@
 - Bundle related data to minimize round trips
 - Use pagination for list endpoints (default: 20 items, max: 100)
 - Return nested objects where appropriate to avoid N+1 queries
-- Include metadata (counts, has_more flags) for better UX
 - Use consistent response structures
 
 ---
@@ -85,7 +84,7 @@
 
 ## 2. User Profiles
 
-### `GET /api/users/:userId/profile`
+### `GET /api/users/:user_id/profile`
 
 **Purpose:** Get user profile with privacy-aware data bundling
 
@@ -97,11 +96,17 @@
 
 ```typescript
 {
-  user: User; // email only included if viewing own profile
-  stats?: UserStats; // if included and visible
-  badges?: Badge[]; // if included
-  friendshipStatus?: 'none' | 'pending_sent' | 'pending_received' | 'friends';
-  isOwnProfile: boolean;
+  id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  bio?: string;
+  avatar_url?: string;
+  first_name?: string;
+  last_name?: string;
+  location?: string;
+  website_url?: string;
+  birth_date?: string;
 }
 ```
 
@@ -115,9 +120,13 @@
 
 ```typescript
 {
-  username?: string;
   bio?: string;
-  avatar?: string;
+  avatar_url?: string;
+  first_name?: string;
+  last_name?: string;
+  location?: string;
+  website_url?: string;
+  birth_date?: string; // ISO date string
 }
 ```
 
@@ -133,10 +142,10 @@
 
 ```typescript
 {
-  profileVisibility?: 'public' | 'private';
-  diveLogsVisibility?: 'public'| 'private';
-  mediaVisibility?: 'public' | 'private';
-  statsVisibility?: 'public' | 'private';
+  profileVisibility?: 'public' | 'private' | 'unlisted';
+  diveLogsVisibility?: 'public'| 'private' | 'unlisted';
+  mediaVisibility?: 'public' | 'private' | 'unlisted';
+  statsVisibility?: 'public' | 'private' | 'unlisted';
 }
 ```
 
@@ -144,7 +153,49 @@
 
 ---
 
-### `GET /api/users/:userId/certifications`
+### `GET /api/users/me/profile`
+
+**Purpose:** Get current user's own profile (full data including private fields)
+
+**Response:** `UserProfile`
+
+---
+
+### `GET /api/users/me/settings`
+
+**Purpose:** Get current user's settings
+
+**Response:** `UserSettings`
+
+---
+
+### `PATCH /api/users/me/settings`
+
+**Purpose:** Update current user's settings
+
+**Request Body:**
+
+```typescript
+{
+  preferred_units?: 'metric' | 'imperial';
+  timezone?: string;
+  language?: string;
+}
+```
+
+**Response:** `UserSettings`
+
+---
+
+### `GET /api/users/me/privacy`
+
+**Purpose:** Get current user's privacy settings
+
+**Response:** `PrivacySettings`
+
+---
+
+### `GET /api/users/:user_id/certifications`
 
 **Purpose:** Get user's certifications (subject to profile privacy settings)
 
@@ -160,32 +211,11 @@
 
 ```typescript
 {
-  certificationName: string;
+  certification_name: string;
   issuer: string;
-  issuedDate: string; // ISO date string
-  expiryDate?: string; // ISO date string
-  certificationNumber?: string;
-  notes?: string;
-}
-```
-
-**Response:** `UserCertification`
-
----
-
-### `PATCH /api/users/me/certifications/:certificationId`
-
-**Purpose:** Update a certification
-
-**Request Body:**
-
-```typescript
-{
-  certificationName?: string;
-  issuer?: string;
-  issuedDate?: string;
-  expiryDate?: string;
-  certificationNumber?: string;
+  issued_date: string; // ISO date string
+  expiry_date?: string; // ISO date string
+  certification_number?: string;
   notes?: string;
   verified?: boolean;
 }
@@ -195,7 +225,29 @@
 
 ---
 
-### `DELETE /api/users/me/certifications/:certificationId`
+### `PATCH /api/users/me/certifications/:certification_id`
+
+**Purpose:** Update a certification
+
+**Request Body:**
+
+```typescript
+{
+  certification_name?: string;
+  issuer?: string;
+  issued_date?: string;
+  expiry_date?: string;
+  certification_number?: string;
+  notes?: string;
+  verified?: boolean;
+}
+```
+
+**Response:** `UserCertification`
+
+---
+
+### `DELETE /api/users/me/certifications/:certification_id`
 
 **Purpose:** Delete a certification
 
@@ -207,48 +259,59 @@
 
 ### `GET /api/divelogs`
 
-**Purpose:** Get paginated dive logs for a user
+**Purpose:** Get dive logs for a user
 
 **Query Parameters:**
 
-- `userId?: string` (defaults to current user)
-- `page?: number`
-- `limit?: number`
-- `sortBy?: 'date' | 'maxDepth' | 'duration' | 'location' | 'experienceRating'` (default: 'date')
+- `user_id?: string` (defaults to current user)
+- `sort_by?: 'date' | 'max_depth' | 'duration' | 'location' | 'experience_rating'` (default: 'date')
 - `order?: 'asc' | 'desc'` (default: 'desc')
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
 
-**Response:**
-
-```typescript
-{
-  diveLogs: DiveLog[];
-  total: number;
-  page: number;
-  hasMore: boolean;
-}
-```
+**Response:** `DiveLog[]`
 
 ---
 
-### `GET /api/divelogs/:diveLogId`
+### `GET /api/divelogs/date-range`
 
-**Purpose:** Get detailed dive log with associated media
+**Purpose:** Get dive logs within a date range for a user
 
-**Response:**
+**Query Parameters:**
 
-```typescript
-{
-  diveLog: DiveLog;
-  media: Array<{
-    media: Media;
-    tags: Array<{
-      tag: SpeciesTag;
-      species: Species;
-    }>;
-  }>; // NOTE: If dive logs frequently have >50 media items, consider adding pagination with query params: ?mediaPage=1&mediaLimit=20
-  canEdit: boolean; // permission check
-}
-```
+- `user_id?: string` (defaults to current user)
+- `start_date: string` (YYYY-MM-DD)
+- `end_date: string` (YYYY-MM-DD)
+- `sort_by?: 'date' | 'max_depth' | 'duration' | 'location' | 'experience_rating'` (default: 'date')
+- `order?: 'asc' | 'desc'` (default: 'desc')
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
+
+**Response:** `DiveLog[]`
+
+---
+
+### `GET /api/divelogs/location/{location}`
+
+**Purpose:** Get dive logs by location (partial match on dive site) for a user
+
+**Query Parameters:**
+
+- `user_id?: string` (defaults to current user)
+- `sort_by?: 'date' | 'max_depth' | 'duration' | 'location' | 'experience_rating'` (default: 'date')
+- `order?: 'asc' | 'desc'` (default: 'desc')
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
+
+**Response:** `DiveLog[]`
+
+---
+
+### `GET /api/divelogs/:dive_log_id`
+
+**Purpose:** Get detailed dive log
+
+**Response:** `DiveLog`
 
 ---
 
@@ -265,50 +328,47 @@
   title: string;
   site: string;
   duration: number;
-  maxDepth: number;
-  visibility: 'public' | 'private' | 'unlisted';
+  max_depth: number;
+  log_visibility: 'public' | 'private' | 'unlisted';
 
   // Dive Basics (optional)
   period?: 'morning' | 'afternoon' | 'night';
-  startType?: 'boat' | 'shore';
+  start_type?: 'boat' | 'shore';
   type?: 'reef' | 'wall' | 'drift' | 'cave' | 'deep' | 'shipwreck' | 'other';
   purpose?: 'recreational' | 'training' | 'research' | 'restoration' | 'other';
 
   // Measurements (optional)
-  avgDepth?: number;
-  visibilityDescription?: string;
+  avg_depth?: number;
+  visibility_description?: string;
   location?: {
     lat: number;
-    lng: number;
+    long: number;
   };
 
   // Environmental (optional)
   weather?: 'sunny' | 'partly cloudy' | 'cloudy' | 'rainy' | 'windy' | 'foggy';
-  airTemp?: number;
-  surfaceTemp?: number;
-  bottomTemp?: number;
-  waterType?: 'salt' | 'fresh' | 'brackish';
-  bodyOfWater?: 'ocean' | 'lake' | 'river' | 'quarry' | 'cenote';
+  air_temp?: number;
+  surface_temp?: number;
+  bottom_temp?: number;
+  water_type?: 'salt' | 'fresh' | 'brackish';
+  body_of_water?: 'ocean' | 'lake' | 'river' | 'quarry' | 'cenote';
   wave?: 'none' | 'small' | 'medium' | 'large';
   current?: 'none' | 'light' | 'moderate' | 'strong';
   surge?: 'none' | 'light' | 'moderate' | 'strong';
 
   // Equipment (optional JSONB fields)
   equipment?: any;
-  gasMix?: any;
-  cylinderPressure?: any;
-  safetyStops?: any;
+  gas_mix?: any;
+  cylinder_pressure?: any;
+  safety_stops?: any;
 
   // People/Experience (optional)
   buddy?: string;
-  diveCenter?: string;
-  experienceFeeling?: 'amazing' | 'good' | 'average' | 'poor';
-  experienceRating?: number;
-  publicNotes?: string;
-  privateNotes?: string;
-
-  // Meta (optional)
-  metadata?: any;
+  dive_center?: string;
+  experience_feeling?: 'amazing' | 'good' | 'average' | 'poor';
+  experience_rating?: number;
+  public_notes?: string;
+  private_notes?: string;
 }
 ```
 
@@ -316,7 +376,7 @@
 
 ---
 
-### `PATCH /api/divelogs/:diveLogId`
+### `PATCH /api/divelogs/:dive_log_id`
 
 **Purpose:** Update existing dive log
 
@@ -326,16 +386,15 @@
 
 ---
 
-### `DELETE /api/divelogs/:diveLogId`
+### `DELETE /api/divelogs/:dive_log_id`
 
-**Purpose:** Delete dive log and associated media
+**Purpose:** Delete dive log
 
 **Response:**
 
 ```typescript
 {
-  success: boolean;
-  deletedMediaCount: number;
+  message: string;
 }
 ```
 
@@ -350,7 +409,7 @@
 **Request Body:** `FormData` with:
 
 - `file: File`
-- `diveLogId: string`
+- `dive_log_id: string`
 - `caption?: string`
 
 **Response:**
@@ -364,7 +423,7 @@
 
 ---
 
-### `DELETE /api/media/:mediaId`
+### `DELETE /api/media/:media_id`
 
 **Purpose:** Delete media (removes associated tags automatically)
 
@@ -379,7 +438,7 @@
 
 ---
 
-### `PATCH /api/media/:mediaId`
+### `PATCH /api/media/:media_id`
 
 **Purpose:** Update media description
 
@@ -401,33 +460,25 @@
 
 **Query Parameters:**
 
-- `userId?: string`
-- `diveLogId?: string`
-- `mediaType?: string`
-- `page?: number`
-- `limit?: number`
+- `user_id?: string`
+- `dive_log_id?: string`
+- `media_type?: string`
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
 
-**Response:**
-
-```typescript
-{
-  media: Array<{
-    media: Media;
-    tags: Array<{
-      tag: SpeciesTag;
-      species: Species;
-    }>;
-  }>;
-  total: number;
-  hasMore: boolean;
-}
-```
+**Response:** Array<{
+media: Media;
+tags: Array<{
+tag: SpeciesTag;
+species: Species;
+}>;
+}>
 
 ---
 
 ## 5. Species Tagging
 
-### `POST /api/media/:mediaId/tags`
+### `POST /api/media/:media_id/tags`
 
 **Purpose:** Tag a species on media
 
@@ -435,7 +486,7 @@
 
 ```typescript
 {
-  speciesId: string;
+  species_id: string;
 }
 ```
 
@@ -450,7 +501,7 @@
 
 ---
 
-### `DELETE /api/media/:mediaId/tags/:tagId`
+### `DELETE /api/media/:media_id/tags/:tag_id`
 
 **Purpose:** Remove species tag
 
@@ -472,30 +523,22 @@
 
 - `search?: string`
 - `category?: string`
-- `page?: number`
-- `limit?: number`
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
 
-**Response:**
-
-```typescript
-{
-  species: Species[];
-  total: number;
-  hasMore: boolean;
-}
-```
+**Response:** Species[]
 
 ---
 
 ## 6. ScubaDex
 
-### `GET /api/scubadex/:userId`
+### `GET /api/scubadex/:user_id`
 
 **Purpose:** Get user's ScubaDex (discovered species)
 
 **Query Parameters:**
 
-- `includeMedia?: boolean` (include sample media for each species)
+- `include_media?: boolean` (include sample media for each species)
 
 **Response:**
 
@@ -503,13 +546,13 @@
 {
   entries: Array<{
     species: Species;
-    firstSeenDate: string;
-    encounterCount: number;
-    sampleMedia?: Media[]; // max 3 if includeMedia=true
+    first_seen_date: string;
+    encounter_count: number;
+    sample_media?: Media[]; // max 3 if includeMedia=true
   }>;
-  totalDiscovered: number;
-  totalSpecies: number; // in catalog
-  percentComplete: number;
+  total_discovered: number;
+  total_species: number; // in catalog
+  percent_complete: number;
 }
 ```
 
@@ -538,23 +581,10 @@ All paginated endpoints should follow this pattern:
 
 **Query Parameters:**
 
-- `page?: number` (default: 1)
-- `limit?: number` (default: 20, max: 100)
+- `limit?: number` (1-100, default: 20)
+- `offset?: number` (default: 0)
 
-**Response Structure:**
-
-```typescript
-{
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasMore: boolean;
-  };
-}
-```
+**Response Structure:** `T[]`
 
 ### Error Response Format
 

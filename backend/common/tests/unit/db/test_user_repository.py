@@ -153,7 +153,8 @@ class TestUserRepository:
             async_session: Database session for the test.
         """
         user_id = await _create_test_user(
-            async_session, email="lookup@example.com",
+            async_session,
+            email="lookup@example.com",
         )
         fetched = await UserRepository(async_session).get_user_by_email(
             "lookup@example.com",
@@ -179,7 +180,8 @@ class TestUserRepository:
             async_session: Database session for the test.
         """
         user_id = await _create_test_user(
-            async_session, username="findme",
+            async_session,
+            username="findme",
         )
         fetched = await UserRepository(async_session).get_user_by_username(
             "findme",
@@ -220,9 +222,12 @@ class TestUserRepository:
         """
         user_id = await _create_test_user(async_session)
         await UserRepository(async_session).delete_user(user_id)
-        assert await UserRepository(async_session).get_user_by_id(
-            user_id,
-        ) is None
+        assert (
+            await UserRepository(async_session).get_user_by_id(
+                user_id,
+            )
+            is None
+        )
 
     async def test_delete_user_not_found(self, async_session: AsyncSession) -> None:
         """Deleting a non-existent user returns False.
@@ -264,7 +269,9 @@ class TestUserRepository:
             async_session: Database session for the test.
         """
         await _create_test_user(
-            async_session, email="michael@reef.com", username="a1",
+            async_session,
+            email="michael@reef.com",
+            username="a1",
         )
         results = await UserRepository(async_session).search_users(
             "reef.com",
@@ -280,11 +287,14 @@ class TestUserRepository:
         """
         for i in range(5):
             await _create_test_user(
-                async_session, username=f"paginate_{i}",
+                async_session,
+                username=f"paginate_{i}",
             )
 
         page = await UserRepository(async_session).search_users(
-            "paginate", limit=2, offset=1,
+            "paginate",
+            limit=2,
+            offset=1,
         )
         assert len(page) == 2
 
@@ -390,7 +400,8 @@ class TestUserRepository:
             async_session: Database session for the test.
         """
         await UserRepository(async_session).update_user_profile(
-            uuid.uuid4(), {"bio": "X"},
+            uuid.uuid4(),
+            {"bio": "X"},
         )
         # No exception raised — silent no-op
 
@@ -515,7 +526,8 @@ class TestUserRepository:
             user_id=user_id,
         )
         await UserRepository(async_session).update_user_settings(
-            user_id, {"language": "es"},
+            user_id,
+            {"language": "es"},
         )
         settings = await UserRepository(async_session).get_user_settings(
             user_id,
@@ -529,7 +541,8 @@ class TestUserRepository:
             async_session: Database session for the test.
         """
         await UserRepository(async_session).update_user_settings(
-            uuid.uuid4(), {"language": "fr"},
+            uuid.uuid4(),
+            {"language": "fr"},
         )
 
     # ============================================================================
@@ -615,5 +628,6 @@ class TestUserRepository:
             async_session: Database session for the test.
         """
         await UserRepository(async_session).update_user_privacy_settings(
-            uuid.uuid4(), {"profile_visibility": Visibility.PRIVATE},
+            uuid.uuid4(),
+            {"profile_visibility": Visibility.PRIVATE},
         )

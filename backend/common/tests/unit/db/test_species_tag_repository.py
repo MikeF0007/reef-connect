@@ -8,15 +8,13 @@ from decimal import Decimal
 from typing import Any, Optional
 
 import pytest
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from common.db.models.core_models import MediaSpeciesTag, Species
 from common.db.repositories.media_repository import MediaRepository
 from common.db.repositories.species_tag_repository import SpeciesTagRepository
 from common.db.repositories.user_repository import UserRepository
 from common.types import MediaType, SpeciesTagSource
-
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -508,7 +506,7 @@ class TestSpeciesTagRepository:
     # Delete Tag Tests
     # ============================================================================
 
-    async def test_delete_tag_returns_true_on_success(
+    async def test_delete_tag_returns_true_on(
         self, async_session: AsyncSession
     ) -> None:
         """delete_tag returns True when the tag exists and is deleted.

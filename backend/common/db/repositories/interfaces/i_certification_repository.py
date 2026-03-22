@@ -29,8 +29,13 @@ class IUserCertificationRepository(Protocol):
         ...
 
     async def add_user_certification(
-        self, *, user_id: uuid.UUID, certification_name: str, issuer: str,
-        issued_date: date, **kwargs: Any,
+        self,
+        *,
+        user_id: uuid.UUID,
+        certification_name: str,
+        issuer: str,
+        issued_date: date,
+        **kwargs: Any,
     ) -> uuid.UUID:
         """Add a new certification for a user and return its ID.
 

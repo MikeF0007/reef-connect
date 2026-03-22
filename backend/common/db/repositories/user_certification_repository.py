@@ -60,8 +60,13 @@ class UserCertificationRepository(IUserCertificationRepository):
         return list(result.scalars().all())
 
     async def add_user_certification(
-        self, *, user_id: uuid.UUID, certification_name: str, issuer: str,
-        issued_date: date, **kwargs: object,
+        self,
+        *,
+        user_id: uuid.UUID,
+        certification_name: str,
+        issuer: str,
+        issued_date: date,
+        **kwargs: object,
     ) -> uuid.UUID:
         """Add a new certification for a user and return its ID.
 

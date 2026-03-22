@@ -10,18 +10,20 @@ from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy import (
-    BigInteger,
-    Date,
     DECIMAL,
+    JSON,
+    BigInteger,
+    CheckConstraint,
+    Date,
     DateTime,
+    ForeignKey,
     Integer,
     String,
     Text,
-    func,
-    JSON,
-    ForeignKey,
-    CheckConstraint,
     UniqueConstraint,
+    func,
+)
+from sqlalchemy import (
     Enum as SQLEnum,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -29,27 +31,26 @@ from sqlalchemy.dialects.postgresql import UUID
 # Use JSON for SQLite compatibility (JSONB not supported in SQLite)
 JSON_TYPE = JSON
 
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from common.types import (
-    DivePeriod,
-    DiveStartType,
-    DiveType,
-    DivePurpose,
-    Weather,
-    WaterType,
     BodyOfWater,
     Condition,
+    DivePeriod,
+    DivePurpose,
+    DiveStartType,
+    DiveType,
     ExperienceFeeling,
-    Visibility,
     MediaStatus,
     MediaType,
     MLTaggingStatus,
     SpeciesTagSource,
+    Visibility,
+    WaterType,
+    Weather,
 )
 
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from .base_model import Base
-from common.db.db_types import PointGeography
 
 
 class DiveLog(Base):
@@ -57,8 +58,6 @@ class DiveLog(Base):
 
     Maps to the ``dive_logs`` table defined in er_core_data.puml.
     All measurement values are stored in imperial units (feet / °F / PSI).
-    The ``location`` field uses ``PointGeography``, which renders as
-    ``geography(Point,4326)`` on PostgreSQL and ``TEXT`` on SQLite.
     """
 
     __tablename__ = "dive_logs"
@@ -100,7 +99,8 @@ class DiveLog(Base):
     avg_depth_ft: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(6, 2))
     visibility_ft: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(6, 2))
     visibility_description: Mapped[Optional[str]] = mapped_column(Text)
-    location: Mapped[Optional[str]] = mapped_column(PointGeography)
+    lat: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(9, 6))
+    long: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(9, 6))
 
     # --- Environmental ---
     weather: Mapped[Optional[Weather]] = mapped_column(SQLEnum(Weather))
@@ -156,7 +156,10 @@ class Media(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     status: Mapped[str] = mapped_column(
         SQLEnum(MediaStatus), nullable=False, default=MediaStatus.PENDING
@@ -303,7 +306,10 @@ class ScubadexEntry(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     species_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("species.id"), nullable=False, index=True

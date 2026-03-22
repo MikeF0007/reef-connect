@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """Test script to validate database setup."""
 
-import sys
 import os
+import sys
 
 # Add the backend directory to Python path for imports
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, backend_dir)
 
 import asyncio
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
+
 from common.config import settings
 from common.db.database import close_db
 from common.db.models.base_model import Base
@@ -42,9 +44,7 @@ async def test_db_setup():
             print("OK - Base metadata tables created successfully")
 
             # Check if tables exist
-            result = await conn.execute(
-                text("SELECT name FROM sqlite_master WHERE type='table'")
-            )
+            result = await conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
             tables = result.fetchall()
             print(f"OK - Tables created: {[t[0] for t in tables]}")
 

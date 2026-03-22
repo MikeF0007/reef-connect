@@ -78,8 +78,8 @@ class IDiveLogRepository(Protocol):
         Args:
             user_id: The user UUID.
             sort_by: Column to sort by. Accepted values: ``"date"``,
-                ``"maxDepth"``, ``"duration"``, ``"location"``,
-                ``"experienceRating"``. Defaults to ``"date"``.
+                ``"max_depth"``, ``"duration"``, ``"location"``,
+                ``"experience_rating"``. Defaults to ``"date"``.
             order: Sort direction — ``"asc"`` or ``"desc"``.
                 Defaults to ``"desc"``.
             limit: Maximum number of results to return.
@@ -93,18 +93,20 @@ class IDiveLogRepository(Protocol):
     async def get_dive_logs_by_location(
         self,
         location: str,
+        user_id: uuid.UUID,
         *,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> list[DiveLog]:
-        """Retrieve dive logs by dive site location (case-insensitive partial match).
+        """Retrieve dive logs by dive site location (case-insensitive partial match) for a user.
 
         Args:
             location: Partial or full dive-site name to search for.
+            user_id: ID of the user to filter dive logs for.
             sort_by: Column to sort by. Accepted values: ``"date"``,
-                ``"maxDepth"``, ``"duration"``, ``"experienceRating"``.
+                ``"max_depth"``, ``"duration"``, ``"experience_rating"``.
                 Defaults to ``"date"``.
             order: Sort direction — ``"asc"`` or ``"desc"``.
                 Defaults to ``"desc"``.
@@ -112,7 +114,7 @@ class IDiveLogRepository(Protocol):
             offset: Number of results to skip.
 
         Returns:
-            A sorted, paginated list of matching DiveLog instances.
+            A sorted, paginated list of matching DiveLog instances for the user.
         """
         ...
 
