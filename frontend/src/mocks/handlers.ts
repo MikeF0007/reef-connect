@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { User } from '../app/types';
+import type { UserProfile, UserProfileUpdate } from '../api/userApi';
 
 // ---------------------------------------------------------------------------
 // Mock credential store — mirrors initializeDemoData.ts
@@ -64,6 +65,61 @@ const MOCK_CREDENTIALS: Record<string, MockCredential> = {
 };
 
 // ---------------------------------------------------------------------------
+// In-memory profile store — keyed by user ID, seeded from mock credentials
+// ---------------------------------------------------------------------------
+const MOCK_PROFILES: Record<string, UserProfile> = {
+  'demo-user-1': {
+    id: 'profile-1',
+    user_id: 'demo-user-1',
+    created_at: new Date('2024-01-01').toISOString(),
+    updated_at: new Date('2024-01-01').toISOString(),
+    bio: 'Passionate scuba diver exploring the oceans',
+    avatar_url: null,
+    first_name: 'Demo',
+    last_name: 'User',
+    location: null,
+    website_url: null,
+    birth_date: null,
+  },
+  'demo-user-2': {
+    id: 'profile-2',
+    user_id: 'demo-user-2',
+    created_at: new Date('2024-02-15').toISOString(),
+    updated_at: new Date('2024-02-15').toISOString(),
+    bio: 'Marine biologist and dive instructor',
+    avatar_url: null,
+    first_name: 'Sarah',
+    last_name: null,
+    location: null,
+    website_url: null,
+    birth_date: null,
+  },
+  'demo-user-3': {
+    id: 'profile-3',
+    user_id: 'demo-user-3',
+    created_at: new Date('2024-03-10').toISOString(),
+    updated_at: new Date('2024-03-10').toISOString(),
+    bio: 'Technical diver and underwater photographer',
+    avatar_url: null,
+    first_name: 'Mike',
+    last_name: null,
+    location: null,
+    website_url: null,
+    birth_date: null,
+  },
+};
+
+/** Extract user ID from the mock JWT written at login. */
+function getUserIdFromRequest(request: Request): string | null {
+  const auth = request.headers.get('Authorization');
+  if (!auth) return null;
+  // Format: "Bearer mock-jwt.<userId>.<timestamp>"
+  const token = auth.replace('Bearer ', '');
+  const parts = token.split('.');
+  return parts.length >= 2 ? parts[1] : null;
+}
+
+// ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
 export const handlers = [
@@ -111,5 +167,38 @@ export const handlers = [
   // POST /api/auth/logout — stub (Phase 4b)
   http.post('/api/auth/logout', () => {
     return HttpResponse.json({ success: true });
+  }),
+
+  // GET /api/users/me/profile
+  http.get('http://localhost:8000/api/users/me/profile', ({ request }) => {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return HttpResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+    }
+    const profile = MOCK_PROFILES[userId];
+    if (!profile) {
+      return HttpResponse.json({ error: 'Profile not found', code: 'NOT_FOUND' }, { status: 404 });
+    }
+    return HttpResponse.json(profile);
+  }),
+
+  // PATCH /api/users/me/profile
+  http.patch('http://localhost:8000/api/users/me/profile', async ({ request }) => {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return HttpResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+    }
+    const existing = MOCK_PROFILES[userId];
+    if (!existing) {
+      return HttpResponse.json({ error: 'Profile not found', code: 'NOT_FOUND' }, { status: 404 });
+    }
+    const body = await request.json() as UserProfileUpdate;
+    const updated: UserProfile = {
+      ...existing,
+      ...body,
+      updated_at: new Date().toISOString(),
+    };
+    MOCK_PROFILES[userId] = updated;
+    return HttpResponse.json(updated);
   }),
 ];

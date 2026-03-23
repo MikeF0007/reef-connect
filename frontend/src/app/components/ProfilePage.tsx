@@ -7,7 +7,13 @@ import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Edit, Save, X, Award } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
 export function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -21,8 +27,8 @@ export function ProfilePage() {
 
   if (!user) return null;
 
-  const handleSave = () => {
-    updateProfile(formData);
+  const handleSave = async () => {
+    await updateProfile(formData);
     setIsEditing(false);
   };
 
@@ -44,20 +50,20 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className='max-w-4xl mx-auto p-4 space-y-6'>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className='flex flex-row items-center justify-between'>
           <CardTitle>Profile</CardTitle>
           {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)} size="sm">
+            <Button onClick={() => setIsEditing(true)} size='sm'>
               <Edit size={16} />
-              <span className="ml-1">Edit</span>
+              <span className='ml-1'>Edit</span>
             </Button>
           ) : (
-            <div className="flex gap-2">
-              <Button onClick={handleSave} size="sm">
+            <div className='flex gap-2'>
+              <Button onClick={handleSave} size='sm'>
                 <Save size={16} />
-                <span className="ml-1">Save</span>
+                <span className='ml-1'>Save</span>
               </Button>
               <Button
                 onClick={() => {
@@ -68,26 +74,26 @@ export function ProfilePage() {
                     certifications: user.certifications,
                   });
                 }}
-                variant="outline"
-                size="sm"
+                variant='outline'
+                size='sm'
               >
                 <X size={16} />
-                <span className="ml-1">Cancel</span>
+                <span className='ml-1'>Cancel</span>
               </Button>
             </div>
           )}
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-3xl">{user.username[0].toUpperCase()}</span>
+        <CardContent className='space-y-4'>
+          <div className='flex items-center gap-4'>
+            <div className='w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center'>
+              <span className='text-3xl'>{user.username[0].toUpperCase()}</span>
             </div>
-            <div className="flex-1">
+            <div className='flex-1'>
               {isEditing ? (
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='username'>Username</Label>
                   <Input
-                    id="username"
+                    id='username'
                     value={formData.username}
                     onChange={(e) =>
                       setFormData({ ...formData, username: e.target.value })
@@ -96,7 +102,7 @@ export function ProfilePage() {
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm text-gray-500">Username</p>
+                  <p className='text-sm text-gray-500'>Username</p>
                   <p>{user.username}</p>
                 </div>
               )}
@@ -105,21 +111,23 @@ export function ProfilePage() {
 
           <div>
             <Label>Email</Label>
-            <p className="text-sm text-gray-600">{user.email}</p>
+            <p className='text-sm text-gray-600'>{user.email}</p>
           </div>
 
           <div>
-            <Label htmlFor="bio">Bio</Label>
+            <Label htmlFor='bio'>Bio</Label>
             {isEditing ? (
               <Textarea
-                id="bio"
+                id='bio'
                 value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder="Tell us about your diving experience..."
-                className="mt-1"
+                onChange={(e) =>
+                  setFormData({ ...formData, bio: e.target.value })
+                }
+                placeholder='Tell us about your diving experience...'
+                className='mt-1'
               />
             ) : (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className='text-sm text-gray-600 mt-1'>
                 {user.bio || 'No bio added yet'}
               </p>
             )}
@@ -128,12 +136,12 @@ export function ProfilePage() {
           <div>
             <Label>Certifications</Label>
             {isEditing ? (
-              <div className="space-y-2 mt-2">
-                <div className="flex gap-2">
+              <div className='space-y-2 mt-2'>
+                <div className='flex gap-2'>
                   <Input
                     value={newCert}
                     onChange={(e) => setNewCert(e.target.value)}
-                    placeholder="Add certification..."
+                    placeholder='Add certification...'
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -141,18 +149,18 @@ export function ProfilePage() {
                       }
                     }}
                   />
-                  <Button onClick={handleAddCertification} size="sm">
+                  <Button onClick={handleAddCertification} size='sm'>
                     Add
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className='flex flex-wrap gap-2'>
                   {formData.certifications.map((cert, index) => (
-                    <Badge key={index} variant="secondary" className="gap-1">
+                    <Badge key={index} variant='secondary' className='gap-1'>
                       <Award size={14} />
                       {cert}
                       <button
                         onClick={() => handleRemoveCertification(index)}
-                        className="ml-1 hover:text-red-600"
+                        className='ml-1 hover:text-red-600'
                       >
                         <X size={14} />
                       </button>
@@ -161,16 +169,18 @@ export function ProfilePage() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className='flex flex-wrap gap-2 mt-2'>
                 {user.certifications.length > 0 ? (
                   user.certifications.map((cert, index) => (
-                    <Badge key={index} variant="secondary">
+                    <Badge key={index} variant='secondary'>
                       <Award size={14} />
-                      <span className="ml-1">{cert}</span>
+                      <span className='ml-1'>{cert}</span>
                     </Badge>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500">No certifications added</p>
+                  <p className='text-sm text-gray-500'>
+                    No certifications added
+                  </p>
                 )}
               </div>
             )}
@@ -183,8 +193,8 @@ export function ProfilePage() {
           <CardHeader>
             <CardTitle>Privacy Settings</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
+          <CardContent className='space-y-4'>
+            <div className='space-y-2'>
               <Label>Profile Visibility</Label>
               <Select
                 value={user.privacySettings.profileVisibility}
@@ -201,14 +211,14 @@ export function ProfilePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="friends">Friends Only</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
+                  <SelectItem value='public'>Public</SelectItem>
+                  <SelectItem value='friends'>Friends Only</SelectItem>
+                  <SelectItem value='private'>Private</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className='space-y-2'>
               <Label>Dive Logs Visibility</Label>
               <Select
                 value={user.privacySettings.diveLogsVisibility}
@@ -225,9 +235,9 @@ export function ProfilePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="friends">Friends Only</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
+                  <SelectItem value='public'>Public</SelectItem>
+                  <SelectItem value='friends'>Friends Only</SelectItem>
+                  <SelectItem value='private'>Private</SelectItem>
                 </SelectContent>
               </Select>
             </div>

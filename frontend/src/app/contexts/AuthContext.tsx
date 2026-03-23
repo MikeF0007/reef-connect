@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { User } from '../types';
 import { loginUser } from '../../api/authApi';
+import { updateMyProfile } from '../../api/userApi';
 import { TOKEN_KEY } from '../../lib/apiClient';
 
 interface AuthContextType {
@@ -18,7 +19,7 @@ interface AuthContextType {
     username: string,
   ) => Promise<boolean>;
   logout: () => void;
-  updateProfile: (updates: Partial<User>) => void;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
   authError: string | null;
@@ -104,20 +105,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY);
   };
 
-  const updateProfile = (updates: Partial<User>) => {
+  const updateProfile = async (updates: Partial<User>): Promise<void> => {
     if (!user) return;
+
+    // Persist bio to the backend profile API; other fields (username,
+    // certifications, privacySettings) have no backend route yet.
+    if (updates.bio !== undefined) {
+      await updateMyProfile({ bio: updates.bio ?? null });
+    }
 
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
     localStorage.setItem('reefconnect_user', JSON.stringify(updatedUser));
-
-    // Update in users array
-    const users = JSON.parse(localStorage.getItem('reefconnect_users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...updates };
-      localStorage.setItem('reefconnect_users', JSON.stringify(users));
-    }
   };
 
   return (
