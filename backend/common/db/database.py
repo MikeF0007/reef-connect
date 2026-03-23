@@ -113,11 +113,17 @@ def get_sync_db() -> Session:
 async def get_db_session() -> AsyncSession:
     """FastAPI dependency to get async database session.
 
+    Commits the transaction on success and rolls back on any exception.
+
     Yields:
         AsyncSession: Database session for the request.
     """
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()

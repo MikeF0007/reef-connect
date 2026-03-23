@@ -8,6 +8,50 @@ from common.types.enums import UnitSystem, Visibility
 from pydantic import BaseModel, Field
 
 
+# ============================================================================
+# Auth schemas
+# ============================================================================
+
+
+class UserRegisterRequest(BaseModel):
+    """Schema for new user registration."""
+
+    email: str = Field(..., max_length=255)
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8)
+
+
+class UserLoginRequest(BaseModel):
+    """Schema for user login."""
+
+    email: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    """Schema for user data returned in auth responses."""
+
+    id: UUID
+    email: str
+    username: str
+    created_at: DateTime
+
+    model_config = {"from_attributes": True}
+
+
+class AuthResponse(BaseModel):
+    """Schema for authentication responses containing user data and a JWT token."""
+
+    user: UserResponse
+    access_token: str
+    token_type: str = "bearer"
+
+
+# ============================================================================
+# User profile / settings / privacy schemas
+# ============================================================================
+
+
 class UserProfileCreate(BaseModel):
     """Schema for creating a user profile."""
 
