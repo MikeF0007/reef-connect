@@ -1,7 +1,7 @@
 """FastAPI router for dive log endpoints."""
 
 from datetime import date
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -21,19 +21,7 @@ from ..schemas.dive_log_schemas import (
     DiveLogUpdate,
 )
 from ..services.dive_log_service import DiveLogService
-
-
-# Placeholder for authentication - replace with actual auth later
-def get_current_user_id() -> UUID:
-    """Get current user ID from authentication context.
-
-    Returns:
-        UUID: The current authenticated user's ID.
-    """
-    # TODO: Implement proper authentication
-    from uuid import uuid4
-
-    return uuid4()  # Placeholder
+from .auth_api import get_current_user_id  # noqa: F401  (re-exported for dependency override)
 
 
 def get_dive_log_service(
@@ -50,16 +38,16 @@ def get_dive_log_service(
     Returns:
         DiveLogService: An instance of DiveLogService.
     """
-    repository = DiveLogRepository(session)
+    dive_log_repository = DiveLogRepository(session)
     media_repository = MediaRepository(session)
     species_repository = SpeciesRepository(session)
-    return DiveLogService(repository, media_repository, species_repository)
+    return DiveLogService(dive_log_repository, media_repository, species_repository)
 
 
 router = APIRouter(prefix="/api/divelogs", tags=["dive-logs"])
 
 
-@router.get("", response_model=List[DiveLogResponse])
+@router.get("", response_model=list[DiveLogResponse])
 async def get_dive_logs(
     user_id: Optional[UUID] = Query(
         None, description="User ID to get dive logs for (defaults to current user)"
@@ -72,7 +60,7 @@ async def get_dive_logs(
     offset: Optional[int] = Query(0, ge=0),
     current_user_id: UUID = Depends(get_current_user_id),
     service: DiveLogService = Depends(get_dive_log_service),
-) -> List[DiveLogResponse]:
+) -> list[DiveLogResponse]:
     """Get dive logs for a user with optional filtering.
 
     Args:
@@ -85,7 +73,7 @@ async def get_dive_logs(
         service: Dive log service instance.
 
     Returns:
-        List[DiveLogResponse]: List of dive logs.
+        list[DiveLogResponse]: List of dive logs.
     """
     target_user_id = user_id if user_id is not None else current_user_id
     query = DiveLogQuery(sort_by=sort_by, order=order, limit=limit, offset=offset)
@@ -111,7 +99,7 @@ async def create_dive_log(
     return await service.create_dive_log(user_id, data)
 
 
-@router.get("/date-range", response_model=List[DiveLogResponse])
+@router.get("/date-range", response_model=list[DiveLogResponse])
 async def get_dive_logs_by_date_range(
     start_date: str,
     end_date: str,
@@ -126,7 +114,7 @@ async def get_dive_logs_by_date_range(
     offset: Optional[int] = Query(0, ge=0),
     current_user_id: UUID = Depends(get_current_user_id),
     service: DiveLogService = Depends(get_dive_log_service),
-) -> List[DiveLogResponse]:
+) -> list[DiveLogResponse]:
     """Get dive logs within a date range for a user.
 
     Args:
@@ -141,7 +129,7 @@ async def get_dive_logs_by_date_range(
         service: Dive log service instance.
 
     Returns:
-        List[DiveLogResponse]: List of dive logs in the date range.
+        list[DiveLogResponse]: List of dive logs in the date range.
     """
     try:
         start = date.fromisoformat(start_date)
@@ -163,7 +151,7 @@ async def get_dive_logs_by_date_range(
     return await service.get_dive_logs_by_date_range(target_user_id, query)
 
 
-@router.get("/location/{location}", response_model=List[DiveLogResponse])
+@router.get("/location/{location}", response_model=list[DiveLogResponse])
 async def get_dive_logs_by_location(
     location: str,
     user_id: Optional[UUID] = Query(
@@ -177,7 +165,7 @@ async def get_dive_logs_by_location(
     offset: Optional[int] = Query(0, ge=0),
     current_user_id: UUID = Depends(get_current_user_id),
     service: DiveLogService = Depends(get_dive_log_service),
-) -> List[DiveLogResponse]:
+) -> list[DiveLogResponse]:
     """Get dive logs by location (case-insensitive partial match) for a user.
 
     Args:
@@ -191,7 +179,7 @@ async def get_dive_logs_by_location(
         service: Dive log service instance.
 
     Returns:
-        List[DiveLogResponse]: List of matching dive logs.
+        list[DiveLogResponse]: List of matching dive logs.
     """
     target_user_id = user_id if user_id is not None else current_user_id
     query = DiveLogQuery(sort_by=sort_by, order=order, limit=limit, offset=offset)

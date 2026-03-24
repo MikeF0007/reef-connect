@@ -22,19 +22,7 @@ from ..schemas.media_schemas import (
     TagWithSpeciesResponse,
 )
 from ..services.media_service import MediaService
-
-
-# Placeholder for authentication - replace with actual auth later
-def get_current_user_id() -> UUID:
-    """Get current user ID from authentication context.
-
-    Returns:
-        UUID: The current authenticated user's ID.
-    """
-    # TODO: Implement proper authentication
-    from uuid import uuid4
-
-    return uuid4()  # Placeholder
+from .auth_api import get_current_user_id  # noqa: F401  (re-exported for dependency override)
 
 
 def get_media_service(

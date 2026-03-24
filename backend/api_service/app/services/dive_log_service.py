@@ -1,6 +1,6 @@
 """Service layer for dive log operations."""
 
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 
 from common.db.repositories.dive_log_repository import DiveLogRepository
@@ -29,14 +29,14 @@ class DiveLogService:
 
     def __init__(
         self,
-        repository: DiveLogRepository,
+        dive_log_repository: DiveLogRepository,
         media_repository: Optional[MediaRepository] = None,
         species_repository: Optional[SpeciesRepository] = None,
     ) -> None:
         """Initialize the dive log service.
 
         Args:
-            repository (DiveLogRepository): The repository for dive log operations.
+            dive_log_repository (DiveLogRepository): The repository for dive log operations.
             media_repository (Optional[MediaRepository]): Repository for fetching
                 associated media. When provided, the detail endpoint will include
                 media with species tags in the response.
@@ -44,7 +44,7 @@ class DiveLogService:
                 resolving species data on media tags. Required when
                 media_repository is provided.
         """
-        self.repository = repository
+        self.dive_log_repository = dive_log_repository
         self.media_repository = media_repository
         self.species_repository = species_repository
 
@@ -65,10 +65,10 @@ class DiveLogService:
         Returns:
             DiveLogResponse: The created dive log response.
         """
-        dive_log_id = await self.repository.create_dive_log(
+        dive_log_id = await self.dive_log_repository.create_dive_log(
             user_id=user_id, **data.model_dump(by_alias=True)
         )
-        dive_log = await self.repository.get_dive_log_by_id(dive_log_id)
+        dive_log = await self.dive_log_repository.get_dive_log_by_id(dive_log_id)
         return DiveLogResponse.model_validate(dive_log)
 
     async def get_dive_log(
@@ -89,7 +89,7 @@ class DiveLogService:
         Returns:
             DiveLogDetailedResponse: The dive log with associated media and tags.
         """
-        dive_log = await self.repository.get_dive_log_by_id(dive_log_id)
+        dive_log = await self.dive_log_repository.get_dive_log_by_id(dive_log_id)
         if not dive_log:
             raise ValueError("Dive log not found")
 
@@ -135,24 +135,24 @@ class DiveLogService:
         )
 
     async def get_dive_logs_by_ids(
-        self, dive_log_ids: List[UUID]
-    ) -> List[DiveLogResponse]:
+        self, dive_log_ids: list[UUID]
+    ) -> list[DiveLogResponse]:
         """Get multiple dive logs by IDs.
 
         TODO: Implement unit conversion based on user preferences for each dive log
 
         Args:
-            dive_log_ids (List[UUID]): The list of dive log IDs to retrieve.
+            dive_log_ids (list[UUID]): The list of dive log IDs to retrieve.
 
         Returns:
-            List[DiveLogResponse]: The list of dive log responses.
+            list[DiveLogResponse]: The list of dive log responses.
         """
-        dive_logs = await self.repository.get_dive_logs_by_ids(dive_log_ids)
+        dive_logs = await self.dive_log_repository.get_dive_logs_by_ids(dive_log_ids)
         return [DiveLogResponse.model_validate(dive_log) for dive_log in dive_logs]
 
     async def get_user_dive_logs(
         self, user_id: UUID, query: Optional[DiveLogQuery] = None
-    ) -> List[DiveLogResponse]:
+    ) -> list[DiveLogResponse]:
         """Get dive logs for a user with optional filtering.
 
         TODO: Implement unit conversion based on user preferences for each dive log
@@ -162,11 +162,11 @@ class DiveLogService:
             query (Optional[DiveLogQuery]): The query parameters for filtering and sorting.
 
         Returns:
-            List[DiveLogResponse]: The list of dive log responses.
+            list[DiveLogResponse]: The list of dive log responses.
         """
         if query is None:
             query = DiveLogQuery()
-        dive_logs = await self.repository.get_dive_logs_by_user(
+        dive_logs = await self.dive_log_repository.get_dive_logs_by_user(
             user_id=user_id,
             sort_by=query.sort_by,
             order=query.order,
@@ -177,7 +177,7 @@ class DiveLogService:
 
     async def get_dive_logs_by_location(
         self, location: str, user_id: UUID, query: Optional[DiveLogQuery] = None
-    ) -> List[DiveLogResponse]:
+    ) -> list[DiveLogResponse]:
         """Get dive logs by location with optional filtering for a user.
 
         TODO: Implement unit conversion based on user preferences for each dive log
@@ -188,11 +188,11 @@ class DiveLogService:
             query (Optional[DiveLogQuery]): The query parameters for filtering and sorting.
 
         Returns:
-            List[DiveLogResponse]: The list of dive log responses.
+            list[DiveLogResponse]: The list of dive log responses.
         """
         if query is None:
             query = DiveLogQuery()
-        dive_logs = await self.repository.get_dive_logs_by_location(
+        dive_logs = await self.dive_log_repository.get_dive_logs_by_location(
             location=location,
             user_id=user_id,
             sort_by=query.sort_by,
@@ -204,7 +204,7 @@ class DiveLogService:
 
     async def get_dive_logs_by_date_range(
         self, user_id: UUID, query: DiveLogDateRangeQuery
-    ) -> List[DiveLogResponse]:
+    ) -> list[DiveLogResponse]:
         """Get dive logs for a user within a date range.
 
         TODO: Implement unit conversion based on user preferences for each dive log
@@ -215,9 +215,9 @@ class DiveLogService:
                 pagination.
 
         Returns:
-            List[DiveLogResponse]: The list of dive log responses.
+            list[DiveLogResponse]: The list of dive log responses.
         """
-        dive_logs = await self.repository.get_dive_logs_by_date_range(
+        dive_logs = await self.dive_log_repository.get_dive_logs_by_date_range(
             user_id=user_id,
             start_date=query.start_date,
             end_date=query.end_date,
@@ -247,18 +247,18 @@ class DiveLogService:
             DiveLogResponse: The updated dive log response.
         """
         # First check if dive log exists and belongs to user
-        dive_log = await self.repository.get_dive_log_by_id(dive_log_id)
+        dive_log = await self.dive_log_repository.get_dive_log_by_id(dive_log_id)
         if not dive_log or dive_log.user_id != user_id:
             raise ValueError("Dive log not found or access denied")
-        await self.repository.update_dive_log(
+        await self.dive_log_repository.update_dive_log(
             dive_log_id, data.model_dump(exclude_unset=True, by_alias=True)
         )
-        updated_dive_log = await self.repository.get_dive_log_by_id(dive_log_id)
+        updated_dive_log = await self.dive_log_repository.get_dive_log_by_id(dive_log_id)
         return DiveLogResponse.model_validate(updated_dive_log)
 
     async def delete_dive_log(self, dive_log_id: UUID, user_id: UUID) -> None:
         """Delete a dive log if it belongs to the user."""
-        dive_log = await self.repository.get_dive_log_by_id(dive_log_id)
+        dive_log = await self.dive_log_repository.get_dive_log_by_id(dive_log_id)
         if not dive_log or dive_log.user_id != user_id:
             raise ValueError("Dive log not found or access denied")
-        await self.repository.delete_dive_log(dive_log_id)
+        await self.dive_log_repository.delete_dive_log(dive_log_id)

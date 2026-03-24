@@ -19,6 +19,15 @@ class TestAuthAPI:
     _USERNAME = "reefuser"
     _PASSWORD = "password123"
 
+    @pytest.fixture(autouse=True)
+    def restore_real_auth(self):
+        """Remove the get_current_user_id mock so real JWT validation runs for auth tests."""
+        from api_service.app.api.auth_api import get_current_user_id
+        from api_service.app.app import app
+
+        app.dependency_overrides.pop(get_current_user_id, None)
+        yield
+
     @pytest.fixture
     async def existing_user(self, async_session):
         """Insert a User with a known bcrypt password into the test database."""

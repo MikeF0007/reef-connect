@@ -81,7 +81,7 @@ def override_dependencies(mock_current_user_id, async_session):
         mock_current_user_id: The test user ID fixture.
         async_session: The test database session fixture.
     """
-    from api_service.app.api import certification_api, dive_log_api, media_api, user_api
+    from api_service.app.api import auth_api
     from common.db.database import get_db_session
 
     def mock_get_current_user_id():
@@ -90,17 +90,9 @@ def override_dependencies(mock_current_user_id, async_session):
     async def mock_get_db_session():
         return async_session
 
-    # Override the dependencies in both routers
-    app.dependency_overrides[user_api.get_current_user_id] = mock_get_current_user_id
-    app.dependency_overrides[certification_api.get_current_user_id] = (
-        mock_get_current_user_id
-    )
-    app.dependency_overrides[dive_log_api.get_current_user_id] = (
-        mock_get_current_user_id
-    )
-    app.dependency_overrides[media_api.get_current_user_id] = mock_get_current_user_id
+    # Single override covers all routers — they all import get_current_user_id from auth_api
+    app.dependency_overrides[auth_api.get_current_user_id] = mock_get_current_user_id
     app.dependency_overrides[get_db_session] = mock_get_db_session
-    # species and scubadex routers use get_db_session directly (no auth stub)
 
     yield
 

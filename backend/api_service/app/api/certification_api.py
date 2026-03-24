@@ -15,19 +15,7 @@ from ..schemas.user_schemas import (
     UserCertificationUpdate,
 )
 from ..services.user_certification_service import UserCertificationService
-
-
-# Placeholder for authentication - replace with actual auth later
-def get_current_user_id() -> UUID:
-    """Get current user ID from authentication context.
-
-    Returns:
-        UUID: The current authenticated user's ID.
-    """
-    # TODO: Implement proper authentication
-    from uuid import uuid4
-
-    return uuid4()  # Placeholder
+from .auth_api import get_current_user_id  # noqa: F401  (re-exported for dependency override)
 
 
 def get_user_certification_service(
