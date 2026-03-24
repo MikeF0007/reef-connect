@@ -1,6 +1,11 @@
 import { http, HttpResponse } from 'msw';
 import { User } from '../app/types';
 import type { UserProfile, UserProfileUpdate } from '../api/userApi';
+import type {
+  UserCertification,
+  UserCertificationCreate,
+  UserCertificationUpdate,
+} from '../api/certificationApi';
 
 // ---------------------------------------------------------------------------
 // Mock credential store — mirrors initializeDemoData.ts
@@ -109,6 +114,49 @@ const MOCK_PROFILES: Record<string, UserProfile> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// In-memory certification store — keyed by user ID, seeded from mock credentials
+// ---------------------------------------------------------------------------
+let certIdCounter = 7;
+
+function makeCert(
+  id: string,
+  userId: string,
+  name: string,
+  issuer: string,
+  issuedDate: string,
+  expiryDate: string | null = null,
+): UserCertification {
+  return {
+    id,
+    user_id: userId,
+    created_at: new Date('2024-01-01').toISOString(),
+    updated_at: new Date('2024-01-01').toISOString(),
+    certification_name: name,
+    issuer,
+    issued_date: issuedDate,
+    expiry_date: expiryDate,
+    certification_number: null,
+    notes: null,
+    verified: null,
+  };
+}
+
+const MOCK_CERTIFICATIONS: Record<string, UserCertification[]> = {
+  'demo-user-1': [
+    makeCert('cert-1', 'demo-user-1', 'PADI Open Water Diver', 'PADI', '2022-06-15'),
+    makeCert('cert-2', 'demo-user-1', 'PADI Advanced Open Water', 'PADI', '2022-09-20'),
+  ],
+  'demo-user-2': [
+    makeCert('cert-3', 'demo-user-2', 'PADI Divemaster', 'PADI', '2021-03-10'),
+    makeCert('cert-4', 'demo-user-2', 'SSI Instructor', 'SSI', '2020-11-05'),
+  ],
+  'demo-user-3': [
+    makeCert('cert-5', 'demo-user-3', 'TDI Technical Diver', 'TDI', '2023-01-20'),
+    makeCert('cert-6', 'demo-user-3', 'PADI Rescue Diver', 'PADI', '2021-07-30'),
+  ],
+};
+
 /** Extract user ID from the mock JWT written at login. */
 function getUserIdFromRequest(request: Request): string | null {
   const auth = request.headers.get('Authorization');
@@ -200,5 +248,87 @@ export const handlers = [
     };
     MOCK_PROFILES[userId] = updated;
     return HttpResponse.json(updated);
+  }),
+
+  // GET /api/users/me/certifications
+  http.get('http://localhost:8000/api/users/me/certifications', ({ request }) => {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return HttpResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+    }
+    return HttpResponse.json(MOCK_CERTIFICATIONS[userId] ?? []);
+  }),
+
+  // POST /api/users/me/certifications
+  http.post('http://localhost:8000/api/users/me/certifications', async ({ request }) => {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return HttpResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+    }
+    const body = await request.json() as UserCertificationCreate;
+    const cert: UserCertification = {
+      id: `cert-${certIdCounter++}`,
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      certification_name: body.certification_name,
+      issuer: body.issuer,
+      issued_date: body.issued_date,
+      expiry_date: body.expiry_date ?? null,
+      certification_number: body.certification_number ?? null,
+      notes: body.notes ?? null,
+      verified: body.verified ?? null,
+    };
+    if (!MOCK_CERTIFICATIONS[userId]) {
+      MOCK_CERTIFICATIONS[userId] = [];
+    }
+    MOCK_CERTIFICATIONS[userId].push(cert);
+    return HttpResponse.json(cert, { status: 201 });
+  }),
+
+  // PATCH /api/users/me/certifications/:certificationId
+  http.patch(
+    'http://localhost:8000/api/users/me/certifications/:certificationId',
+    async ({ request, params }) => {
+      const userId = getUserIdFromRequest(request);
+      if (!userId) {
+        return HttpResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+      }
+      const list = MOCK_CERTIFICATIONS[userId] ?? [];
+      const idx = list.findIndex((c) => c.id === params.certificationId);
+      if (idx === -1) {
+        return HttpResponse.json({ error: 'Certification not found', code: 'NOT_FOUND' }, { status: 404 });
+      }
+      const body = await request.json() as UserCertificationUpdate;
+      const patch = Object.fromEntries(
+        Object.entries(body as Record<string, unknown>).filter(([, v]) => v != null),
+      );
+      const updated: UserCertification = { ...list[idx], ...patch, updated_at: new Date().toISOString() };
+      list[idx] = updated;
+      return HttpResponse.json(updated);
+    },
+  ),
+
+  // DELETE /api/users/me/certifications/:certificationId
+  http.delete(
+    'http://localhost:8000/api/users/me/certifications/:certificationId',
+    ({ request, params }) => {
+      const userId = getUserIdFromRequest(request);
+      if (!userId) {
+        return HttpResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+      }
+      const list = MOCK_CERTIFICATIONS[userId] ?? [];
+      const idx = list.findIndex((c) => c.id === params.certificationId);
+      if (idx === -1) {
+        return HttpResponse.json({ error: 'Certification not found', code: 'NOT_FOUND' }, { status: 404 });
+      }
+      list.splice(idx, 1);
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
+
+  // GET /api/users/:userId/certifications
+  http.get('http://localhost:8000/api/users/:userId/certifications', ({ params }) => {
+    return HttpResponse.json(MOCK_CERTIFICATIONS[params.userId as string] ?? []);
   }),
 ];

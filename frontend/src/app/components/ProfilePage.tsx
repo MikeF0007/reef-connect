@@ -1,4 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  getMyCertifications,
+  addMyCertification,
+  updateMyCertification,
+  deleteMyCertification,
+  type UserCertification,
+  type UserCertificationCreate,
+} from '../../api/certificationApi';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -21,9 +29,23 @@ export function ProfilePage() {
   const [formData, setFormData] = useState({
     username: user?.username || '',
     bio: user?.bio || '',
-    certifications: user?.certifications || [],
   });
-  const [newCert, setNewCert] = useState('');
+  const [certifications, setCertifications] = useState<UserCertification[]>([]);
+  const [newCertForm, setNewCertForm] = useState<UserCertificationCreate>({
+    certification_name: '',
+    issuer: '',
+    issued_date: '',
+  });
+  const [editingCertId, setEditingCertId] = useState<string | null>(null);
+  const [editCertForm, setEditCertForm] = useState<UserCertificationCreate>({
+    certification_name: '',
+    issuer: '',
+    issued_date: '',
+  });
+
+  useEffect(() => {
+    getMyCertifications().then(setCertifications).catch(console.error);
+  }, []);
 
   if (!user) return null;
 
@@ -32,21 +54,39 @@ export function ProfilePage() {
     setIsEditing(false);
   };
 
-  const handleAddCertification = () => {
-    if (newCert.trim()) {
-      setFormData({
-        ...formData,
-        certifications: [...formData.certifications, newCert.trim()],
-      });
-      setNewCert('');
-    }
+  const handleAddCertification = async () => {
+    const { certification_name, issuer, issued_date } = newCertForm;
+    if (!certification_name.trim() || !issuer.trim() || !issued_date) return;
+    const created = await addMyCertification(newCertForm);
+    setCertifications((prev) => [...prev, created]);
+    setNewCertForm({ certification_name: '', issuer: '', issued_date: '' });
   };
 
-  const handleRemoveCertification = (index: number) => {
-    setFormData({
-      ...formData,
-      certifications: formData.certifications.filter((_, i) => i !== index),
+  const handleRemoveCertification = async (id: string) => {
+    await deleteMyCertification(id);
+    setCertifications((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const handleEditCertification = (cert: UserCertification) => {
+    setEditingCertId(cert.id);
+    setEditCertForm({
+      certification_name: cert.certification_name,
+      issuer: cert.issuer,
+      issued_date: cert.issued_date,
     });
+  };
+
+  const handleSaveEditCertification = async () => {
+    if (!editingCertId) return;
+    const updated = await updateMyCertification(editingCertId, editCertForm);
+    setCertifications((prev) =>
+      prev.map((c) => (c.id === editingCertId ? updated : c)),
+    );
+    setEditingCertId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCertId(null);
   };
 
   return (
@@ -71,7 +111,6 @@ export function ProfilePage() {
                   setFormData({
                     username: user.username,
                     bio: user.bio || '',
-                    certifications: user.certifications,
                   });
                 }}
                 variant='outline'
@@ -137,44 +176,128 @@ export function ProfilePage() {
             <Label>Certifications</Label>
             {isEditing ? (
               <div className='space-y-2 mt-2'>
-                <div className='flex gap-2'>
+                <div className='grid grid-cols-3 gap-2'>
                   <Input
-                    value={newCert}
-                    onChange={(e) => setNewCert(e.target.value)}
-                    placeholder='Add certification...'
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCertification();
-                      }
-                    }}
+                    value={newCertForm.certification_name}
+                    onChange={(e) =>
+                      setNewCertForm({
+                        ...newCertForm,
+                        certification_name: e.target.value,
+                      })
+                    }
+                    placeholder='Certification name'
                   />
-                  <Button onClick={handleAddCertification} size='sm'>
-                    Add
-                  </Button>
+                  <Input
+                    value={newCertForm.issuer}
+                    onChange={(e) =>
+                      setNewCertForm({ ...newCertForm, issuer: e.target.value })
+                    }
+                    placeholder='Issuer (e.g. PADI)'
+                  />
+                  <div className='flex gap-2'>
+                    <Input
+                      type='date'
+                      value={newCertForm.issued_date}
+                      onChange={(e) =>
+                        setNewCertForm({
+                          ...newCertForm,
+                          issued_date: e.target.value,
+                        })
+                      }
+                    />
+                    <Button onClick={handleAddCertification} size='sm'>
+                      Add
+                    </Button>
+                  </div>
                 </div>
                 <div className='flex flex-wrap gap-2'>
-                  {formData.certifications.map((cert, index) => (
-                    <Badge key={index} variant='secondary' className='gap-1'>
-                      <Award size={14} />
-                      {cert}
-                      <button
-                        onClick={() => handleRemoveCertification(index)}
-                        className='ml-1 hover:text-red-600'
+                  {certifications.map((cert) =>
+                    editingCertId === cert.id ? (
+                      <div
+                        key={cert.id}
+                        className='flex items-center gap-2 p-2 border rounded-md bg-gray-50'
                       >
-                        <X size={14} />
-                      </button>
-                    </Badge>
-                  ))}
+                        <Input
+                          value={editCertForm.certification_name}
+                          onChange={(e) =>
+                            setEditCertForm({
+                              ...editCertForm,
+                              certification_name: e.target.value,
+                            })
+                          }
+                          placeholder='Name'
+                          className='w-32'
+                        />
+                        <Input
+                          value={editCertForm.issuer}
+                          onChange={(e) =>
+                            setEditCertForm({
+                              ...editCertForm,
+                              issuer: e.target.value,
+                            })
+                          }
+                          placeholder='Issuer'
+                          className='w-20'
+                        />
+                        <Input
+                          type='date'
+                          value={editCertForm.issued_date}
+                          onChange={(e) =>
+                            setEditCertForm({
+                              ...editCertForm,
+                              issued_date: e.target.value,
+                            })
+                          }
+                          className='w-32'
+                        />
+                        <Button
+                          onClick={handleSaveEditCertification}
+                          size='sm'
+                          variant='outline'
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          onClick={handleCancelEdit}
+                          size='sm'
+                          variant='ghost'
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Badge
+                        key={cert.id}
+                        variant='secondary'
+                        className='gap-1'
+                      >
+                        <Award size={14} />
+                        {cert.certification_name}
+                        <button
+                          onClick={() => handleEditCertification(cert)}
+                          className='ml-1 hover:text-blue-600'
+                          title='Edit certification'
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveCertification(cert.id)}
+                          className='ml-1 hover:text-red-600'
+                        >
+                          <X size={14} />
+                        </button>
+                      </Badge>
+                    ),
+                  )}
                 </div>
               </div>
             ) : (
               <div className='flex flex-wrap gap-2 mt-2'>
-                {user.certifications.length > 0 ? (
-                  user.certifications.map((cert, index) => (
-                    <Badge key={index} variant='secondary'>
+                {certifications.length > 0 ? (
+                  certifications.map((cert) => (
+                    <Badge key={cert.id} variant='secondary'>
                       <Award size={14} />
-                      <span className='ml-1'>{cert}</span>
+                      <span className='ml-1'>{cert.certification_name}</span>
                     </Badge>
                   ))
                 ) : (
